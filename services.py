@@ -6,10 +6,7 @@ import io
 import os
 import re
 import numpy as np
-import tensorflow as tf
 from PIL import Image
-from tensorflow.keras.preprocessing import image as keras_image # type: ignore
-from tensorflow.keras.applications.mobilenet_v2 import preprocess_input # type: ignore
 from sklearn.metrics.pairwise import cosine_similarity
 from datetime import datetime, timedelta
 import inspect
@@ -855,7 +852,7 @@ def get_drishti_response(user_message, user_id, conversation_history=[]):
     - You do not know anything about other websites or services other than Kisan Drishti. If a user asks about something outside your knowledge, say: "I don't have information on that. I can only help with farming-related questions."
     - If a tool returns data with a 'note' field, you MUST include that information in your response, but phrase it naturally. For example, instead of just saying the note, you might say 'Based on live market data...' or 'Please note, this data is from a past date...'.
     """
-    
+
     current_conversation = conversation_history + [{"role": "user", "content": user_message}]
     
     # The Gradio API expects all inputs to be strings, so we use json.dumps
