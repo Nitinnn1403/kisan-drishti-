@@ -1,0 +1,82 @@
+{
+    "app_title": "Kisan Drishti",
+    "app_title_short": "Kisan Drishti",
+    "header_subtitle": "Your AI-Powered Agriculture Assistant",
+    "user_role": "Farmer",
+
+    "nav_dashboard": "Dashboard",
+    "nav_analyze_crop": "Analyze Crop",
+    "nav_analyze_field": "Analyze Field",
+    "nav_fertilizer_info": "Fertilizer Plan",
+    "nav_price_info": "Price Info",
+    "nav_my_reports": "My Reports",
+    "nav_settings": "Settings",
+    "logout": "Logout",
+
+    "dashboard_welcome_title": "Welcome to Kisan Drishti!",
+    "dashboard_welcome_text": "Analyze your first field to unlock your personalized dashboard and see key metrics.",
+    "dashboard_welcome_btn": "Analyze My First Field",
+
+    "last_report_summary_title": "Last Report Summary",
+    "top_recommendation": "Top Recommendation",
+
+    "mandi_price_title": "Mandi Price",
+    "mandi_price_unit": "per Quintal (Avg)",
+
+    "soil_type_title": "Soil Type",
+    "soil_type_subtitle": "From last report",
+    "soil_type_confidence": "High Confidence",
+
+    "current_weather_title": "Current Weather",
+    
+    "price_chart_title": "Key Crop Prices in Your State",
+    "cta_analyze_title": "Start a New Analysis",
+    "cta_analyze_desc": "Get fresh crop recommendations for a new plot of land.",
+    "cta_analyze_btn": "Analyze New Field",
+
+    "crop_health_title": "Analyze Crop Health",
+    "crop_health_desc": "Upload a clear photo of a single plant leaf to detect potential diseases or health issues.",
+    "crop_health_upload_label": "Upload Crop Image:",
+    "analyze_crop_btn": "Analyze Crop",
+    "crop_health_results_placeholder": "Analysis results will appear here.",
+
+    "field_analysis_title": "Analyze Field & Get Recommendations",
+    "field_analysis_desc": "Provide your field's location and a soil image for tailored recommendations.",
+    "field_analysis_upload_label": "1. Upload Soil Image (Required)",
+    "field_analysis_location_label": "2. Field Location (Required)",
+    "get_my_location_btn": "Get My Location",
+    "field_analysis_last_crop_label": "3. Last Crop Grown (Optional)",
+    "analyze_field_btn": "Analyze Field",
+    "field_analysis_results_placeholder": "Field analysis report will appear here.",
+    "save_report_btn": "Save This Field Report",
+
+    "fertilizer_title": "Fertilizer Recommendation Plan",
+    "fertilizer_desc": "Select a saved field report to generate a tailored fertilizer application plan.",
+    "fertilizer_select_label": "1. Select a Saved Report:",
+    "fertilizer_get_plan_btn": "Get Fertilizer Plan",
+    "fertilizer_results_placeholder": "Your personalized fertilizer plan will appear here.",
+
+    "price_calculator_title": "Mandi Price Calculator",
+    "price_calculator_desc": "Estimate the potential revenue from your field based on recent market prices.",
+    "price_calculator_location_label": "1. Select Location",
+    "select_state_placeholder": "-- Select State --",
+    "select_district_placeholder": "-- Select State First --",
+    "price_calculator_crop_label": "2. Crop Name",
+    "price_calculator_area_label": "3. Field Area (in Acres)",
+    "find_price_btn": "Find Price & Estimate Revenue",
+    "price_calculator_results_placeholder": "Price information will appear here.",
+
+    "my_saved_reports_title": "My Saved Reports",
+
+    "settings_title": "Settings & Profile",
+    "profile_info_title": "Profile Information",
+    "current_username": "Current Username",
+    "change_password_title": "Change Password",
+    "current_password_label": "Current Password",
+    "new_password_label": "New Password",
+    "confirm_new_password_label": "Confirm New Password",
+    "update_password_btn": "Update Password",
+    "danger_zone_title": "Danger Zone",
+    "danger_zone_text": "Deleting your account is permanent and cannot be undone. All your saved reports will be lost.",
+    "delete_account_btn": "Delete My Account"
+}

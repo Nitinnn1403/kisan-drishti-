@@ -1,0 +1,43 @@
+crop,n_req,p_req,k_req
+apple,100,50,100
+banana,200,50,300
+barley,60,30,20
+blackgram,45,65,22
+brinjal,100,50,50
+cabbage,150,80,125
+cauliflower,120,60,60
+chickpea,35,65,75
+coconut,90,55,210
+coffee,105,21,32
+cotton,125,55,52
+grapes,5,135,202
+groundnut,25,55,32
+jowar (sorghum),95,45,45
+jute,85,45,42
+kidneybeans,25,65,22
+lentil,25,65,22
+maize,112,58,40
+mango,35,25,32
+mothbeans,25,45,22
+mungbean,25,55,18
+muskmelon,95,20,48
+mustard,35,55,32
+okra,115,65,62
+orange,32,15,7
+paddy (rice),80,40,40
+papaya,65,65,52
+pearl millet (bajra),90,40,40
+pigeonpeas,15,65,22
+pomegranate,10,22,32
+potato,125,85,102
+ragi (finger millet),55,45,28
+rice,80,40,40
+sesame,35,45,22
+soybean,25,65,32
+sugarcane,285,115,125
+sunflower,55,85,62
+tea,145,55,82
+tomato,125,85,82
+turmeric,115,65,102
+watermelon,105,18,52
+wheat,125,62,42

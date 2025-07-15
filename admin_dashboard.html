@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ title }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .loader { border-top-color: #3498db; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans">
+    <nav class="bg-gray-800 text-white p-4 flex justify-between items-center shadow-md">
+        <h1 class="text-xl font-bold">Kisan Drishti Admin</h1>
+        <a href="/admin/logout" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">Logout</a>
+    </nav>
+
+    <div class="container mx-auto p-8">
+        <h2 class="text-3xl font-bold mb-6 text-gray-800">Admin Dashboard</h2>
+
+        <!-- Stats Cards Section -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <h3 class="text-gray-500 text-sm font-medium">Total Users</h3>
+                <p id="stats-total-users" class="text-3xl font-bold text-blue-600">...</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <h3 class="text-gray-500 text-sm font-medium">Total Reports</h3>
+                <p id="stats-total-reports" class="text-3xl font-bold text-green-600">...</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <h3 class="text-gray-500 text-sm font-medium">New Reports (24h)</h3>
+                <p id="stats-reports-24h" class="text-3xl font-bold text-yellow-500">...</p>
+            </div>
+        </div>
+
+        <!-- Chart Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h3 class="text-xl font-bold mb-4 text-gray-700">New User Registrations (30 Days)</h3>
+                <canvas id="registrationsChart"></canvas>
+            </div>
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h3 class="text-xl font-bold mb-4 text-gray-700">Top Recommended Crops</h3>
+                <canvas id="topCropsChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Recent Reports Table -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h3 class="text-xl font-bold mb-4 text-gray-700">Recent Field Reports</h3>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead class="bg-gray-200">
+                        <tr>
+                            <th class="p-3">Report ID</th>
+                            <th class="p-3">User ID</th>
+                            <th class="p-3">Location</th>
+                            <th class="p-3">Top Crop Rec</th>
+                            <th class="p-3">Date</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reports-tbody">
+                        <!-- JS will populate this section -->
+                        <tr><td colspan="5" class="text-center p-8"><div class="loader h-8 w-8 rounded-full border-4 border-gray-200 mx-auto"></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Fetch and display the summary statistics
+            fetch('/api/admin/stats')
+                .then(response => response.json())
+                .then(data => {
+                    if(data.success) {
+                        document.getElementById('stats-total-users').textContent = data.stats.total_users;
+                        document.getElementById('stats-total-reports').textContent = data.stats.total_reports;
+                        document.getElementById('stats-reports-24h').textContent = data.stats.reports_last_24h;
+                    }
+                })
+                .catch(err => console.error("Failed to load stats:", err));
+
+            // Fetch and display the recent reports table
+            fetch('/api/admin/reports')
+                .then(response => response.json())
+                .then(data => {
+                    const tbody = document.getElementById('reports-tbody');
+                    tbody.innerHTML = ''; // Clear the loader
+
+                    if(data.success && data.reports.length > 0) {
+                        data.reports.forEach(report => {
+                            const row = `
+                                <tr class="border-b hover:bg-gray-50">
+                                    <td class="p-3 font-mono text-blue-700">${report.id}</td>
+                                    <td class="p-3">${report.user_id}</td>
+                                    <td class="p-3">${report.district || 'N/A'}, ${report.state || 'N/A'}</td>
+                                    <td class="p-3 font-semibold">${report.top_crop || 'N/A'}</td>
+                                    <td class="p-3 text-sm text-gray-600">${report.saved_at}</td>
+                                </tr>
+                            `;
+                            tbody.innerHTML += row;
+                        });
+                    } else {
+                        tbody.innerHTML = '<tr><td colspan="5" class="text-center p-8 text-gray-500">No recent reports found.</td></tr>';
+                    }
+                })
+                .catch(err => {
+                    console.error("Failed to load reports:", err)
+                    const tbody = document.getElementById('reports-tbody');
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-center p-8 text-red-500">Error loading reports.</td></tr>';
+                });
+            // Function to create a line chart
+            function renderLineChart(canvasId, labels, data, label) {
+                const ctx = document.getElementById(canvasId).getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: label,
+                            data: data,
+                            borderColor: 'rgb(59, 130, 246)',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            fill: true,
+                            tension: 0.3
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: true }
+                });
+            }
+
+            // Function to create a bar chart
+            function renderBarChart(canvasId, labels, data, label) {
+                const ctx = document.getElementById(canvasId).getContext('2d');
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: label,
+                            data: data,
+                            backgroundColor: [
+                                'rgba(22, 163, 74, 0.7)',
+                                'rgba(234, 179, 8, 0.7)',
+                                'rgba(219, 39, 119, 0.7)',
+                                'rgba(37, 99, 235, 0.7)',
+                                'rgba(249, 115, 22, 0.7)',
+                                'rgba(14, 165, 233, 0.7)',
+                                'rgba(139, 92, 246, 0.7)'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true } }
+                    }
+                });
+            }
+
+            // Fetch and render the registrations chart
+            fetch('/api/admin/analytics/registrations')
+                .then(res => res.json())
+                .then(chartData => {
+                    if(chartData.success) {
+                        renderLineChart('registrationsChart', chartData.labels, chartData.data, 'New Users');
+                    }
+                }).catch(err => console.error("Failed to load registrations chart:", err));
+
+            // Fetch and render the top crops chart
+            fetch('/api/admin/analytics/top_crops')
+                .then(res => res.json())
+                .then(chartData => {
+                    if(chartData.success) {
+                        renderBarChart('topCropsChart', chartData.labels, chartData.data, 'Times Recommended');
+                    }
+                }).catch(err => console.error("Failed to load top crops chart:", err));
+        });
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+
+# Environment variables
+.env
+.env.*
+
+# IDE / Editor specific
+.vscode/
+.idea/
+
+# TensorFlow / Keras cache
+.ipynb_checkpoints
+
+# Database files (if you ever use a local one)
+*.sqlite3
+*.db

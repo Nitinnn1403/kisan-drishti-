@@ -1,0 +1,7 @@
+soil_type,n_avg,p_avg,k_avg
+Alluvial,75,25,150
+Black,55,35,450
+Red,65,45,120
+Laterite,40,30,100
+Desert,45,20,250
+Mountain,90,25,125

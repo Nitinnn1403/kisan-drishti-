@@ -1,0 +1,82 @@
+{
+    "app_title": "किसान दृष्टि",
+    "app_title_short": "किसान दृष्टि",
+    "header_subtitle": "आपका AI-संचालित कृषि सहायक",
+    "user_role": "किसान",
+
+    "nav_dashboard": "डैशबोर्ड",
+    "nav_analyze_crop": "फसल का विश्लेषण",
+    "nav_analyze_field": "खेत का विश्लेषण",
+    "nav_fertilizer_info": "उर्वरक योजना",
+    "nav_price_info": "मूल्य की जानकारी",
+    "nav_my_reports": "मेरी रिपोर्ट्स",
+    "nav_settings": "सेटिंग्स",
+    "logout": "लॉग आउट",
+
+    "dashboard_welcome_title": "किसान दृष्टि में आपका स्वागत है!",
+    "dashboard_welcome_text": "अपना व्यक्तिगत डैशबोर्ड और प्रमुख मीट्रिक्स देखने के लिए अपने पहले खेत का विश्लेषण करें।",
+    "dashboard_welcome_btn": "मेरे पहले खेत का विश्लेषण करें",
+    
+    "last_report_summary_title": "अंतिम रिपोर्ट सारांश",
+    "top_recommendation": "शीर्ष सिफारिश",
+
+    "mandi_price_title": "मंडी मूल्य",
+    "mandi_price_unit": "प्रति क्विंटल (औसत)",
+
+    "soil_type_title": "मिट्टी का प्रकार",
+    "soil_type_subtitle": "अंतिम रिपोर्ट से",
+    "soil_type_confidence": "उच्च विश्वास",
+
+    "current_weather_title": "वर्तमान मौसम",
+    
+    "price_chart_title": "आपके राज्य में प्रमुख फसल की कीमतें",
+    "cta_analyze_title": "एक नया विश्लेषण शुरू करें",
+    "cta_analyze_desc": "भूमि के एक नए भूखंड के लिए ताजा फसल सिफारिशें प्राप्त करें।",
+    "cta_analyze_btn": "नए खेत का विश्लेषण करें",
+
+    "crop_health_title": "फसल स्वास्थ्य का विश्लेषण करें",
+    "crop_health_desc": "संभावित बीमारियों या स्वास्थ्य समस्याओं का पता लगाने के लिए एक पौधे की पत्ती की स्पष्ट तस्वीर अपलोड करें।",
+    "crop_health_upload_label": "फसल की छवि अपलोड करें:",
+    "analyze_crop_btn": "फसल का विश्लेषण करें",
+    "crop_health_results_placeholder": "विश्लेषण के परिणाम यहां दिखाई देंगे।",
+
+    "field_analysis_title": "खेत का विश्लेषण करें और सिफारिशें प्राप्त करें",
+    "field_analysis_desc": "अनुरूप सिफारिशों के लिए अपने खेत का स्थान और मिट्टी की एक छवि प्रदान करें।",
+    "field_analysis_upload_label": "१. मिट्टी की छवि अपलोड करें (आवश्यक)",
+    "field_analysis_location_label": "२. खेत का स्थान (आवश्यक)",
+    "get_my_location_btn": "मेरा स्थान प्राप्त करें",
+    "field_analysis_last_crop_label": "३. पिछली उगाई गई फसल (वैकल्पिक)",
+    "analyze_field_btn": "खेत का विश्लेषण करें",
+    "field_analysis_results_placeholder": "खेत विश्लेषण रिपोर्ट यहां दिखाई देगी।",
+    "save_report_btn": "इस खेत की रिपोर्ट सहेजें",
+
+    "fertilizer_title": "उर्वरक सिफारिश योजना",
+    "fertilizer_desc": "एक अनुरूप उर्वरक आवेदन योजना बनाने के लिए एक सहेजी गई खेत रिपोर्ट का चयन करें।",
+    "fertilizer_select_label": "१. एक सहेजी गई रिपोर्ट चुनें:",
+    "fertilizer_get_plan_btn": "उर्वरक योजना प्राप्त करें",
+    "fertilizer_results_placeholder": "आपकी व्यक्तिगत उर्वरक योजना यहां दिखाई देगी।",
+
+    "price_calculator_title": "मंडी मूल्य कैलकुलेटर",
+    "price_calculator_desc": "हाल के बाजार मूल्यों के आधार पर अपने खेत से संभावित राजस्व का अनुमान लगाएं।",
+    "price_calculator_location_label": "१. स्थान चुनें",
+    "select_state_placeholder": "-- राज्य चुनें --",
+    "select_district_placeholder": "-- पहले राज्य चुनें --",
+    "price_calculator_crop_label": "२. फसल का नाम",
+    "price_calculator_area_label": "३. खेत का क्षेत्रफल (एकड़ में)",
+    "find_price_btn": "मूल्य और अनुमानित राजस्व खोजें",
+    "price_calculator_results_placeholder": "मूल्य की जानकारी यहां दिखाई देगी।",
+
+    "my_saved_reports_title": "मेरी सहेजी गई रिपोर्ट्स",
+
+    "settings_title": "सेटिंग्स और प्रोफाइल",
+    "profile_info_title": "प्रोफाइल जानकारी",
+    "current_username": "वर्तमान उपयोगकर्ता नाम",
+    "change_password_title": "पासवर्ड बदलें",
+    "current_password_label": "वर्तमान पासवर्ड",
+    "new_password_label": "नया पासवर्ड",
+    "confirm_new_password_label": "नए पासवर्ड की पुष्टि करें",
+    "update_password_btn": "पासवर्ड अपडेट करें",
+    "danger_zone_title": "खतरा क्षेत्र",
+    "danger_zone_text": "आपका खाता हटाना स्थायी है और इसे पूर्ववत् नहीं किया जा सकता। आपकी सभी सहेजी गई रिपोर्ट खो जाएंगी।",
+    "delete_account_btn": "मेरा खाता हटाएं"
+}

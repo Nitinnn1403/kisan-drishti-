@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n-key="app_title">Kisan Drishti - Web App</title>
+    <link rel="icon" href="/static/images/logo.png"> <!-- Using your logo for favicon too -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f7fafc; color: #334155; }
+        
+        .sidebar-link { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; border-radius: 8px; font-weight: 500; color: #4b5563; transition: all 0.2s ease; cursor: pointer; text-decoration: none; }
+        .sidebar-link:hover { background-color: #f1f5f9; color: #1e293b; }
+        .sidebar-link.active { background-color: #ecfdf5; color: #065f46; font-weight: 600; }
+        .sidebar-link svg { width: 1.25rem; height: 1.25rem; flex-shrink: 0; }
+        .content-card { background-color: white; padding: 2.5rem; border-radius: 16px; box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08); }
+        .btn-primary { background-color: #10b981; color: white; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; transition: background-color 0.3s ease; border: none; cursor: pointer; }
+        .btn-primary:hover { background-color: #059669; }
+        .btn-primary:disabled { background-color: #9ca3af; cursor: not-allowed; }
+        .form-input { border: 1px solid #d1d5db; padding: 0.75rem 1rem; border-radius: 8px; width: 100%; font-size: 1rem; }
+        .form-input:focus { border-color: #10b981; outline: none; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2); }
+
+        .content-display {
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        .content-section {
+            display: none; /* Hide all sections by default */
+        }
+
+        .content-section.active {
+            display: block; /* Show only the active section */
+            animation: fadeIn 0.4s ease-out; /* Apply a simple fade-in animation */
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(15px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #10b981; border-radius: 50%; width: 20px; height: 20px; animation: spin 1.5s linear infinite; display: inline-block; vertical-align: middle; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .hero-banner {
+            position: relative; height: 200px; background-image: url('https://images.unsplash.com/photo-1560493676-04071c5f467b?q=80&w=1974&auto=format&fit=crop'); background-size: cover; background-position: center; border-radius: 12px; color: white; display: flex; align-items: center; justify-content: center; text-align: center; margin-bottom: 2rem;
+        }
+        .hero-banner::after { content: ''; position: absolute; top: 0; right: 0; bottom: 0; left: 0; background-color: rgba(0,0,0,0.4); border-radius: 12px; }
+        .hero-text { position: relative; z-index: 10; }
+
+        #drishti-cta-bubble { position: fixed; bottom: 2rem; right: 6rem; background-color: white; padding: 1rem 1.5rem; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); z-index: 39; max-width: 240px; opacity: 0; transform: translateY(15px); transition: opacity 0.4s ease, transform 0.4s ease; pointer-events: none; }
+        #drishti-cta-bubble.active { opacity: 1; transform: translateY(0); pointer-events: auto; }
+        #drishti-cta-bubble::after { content: ''; position: absolute; top: 50%; right: -10px; margin-top: -10px; width: 0; height: 0; border-top: 10px solid transparent; border-bottom: 10px solid transparent; border-left: 10px solid white; }
+        #drishti-cta-close { position: absolute; top: 0.25rem; right: 0.5rem; background: none; border: none; font-size: 1.5rem; color: #9ca3af; cursor: pointer; }
+        .chat-message-row { display: flex; align-items: flex-end; gap: 0.75rem; margin-bottom: 1rem; }
+        .chat-message-row.user { justify-content: flex-end; }
+        .chat-avatar { width: 40px; height: 40px; border-radius: 9999px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 600; color: white; }
+        .chat-avatar.bot { background-color: #10b981; }
+        .chat-avatar.user { background-color: #3b82f6; }
+        .message-content { padding: 0.75rem 1rem; border-radius: 1.25rem; max-width: 85%; line-height: 1.4; }
+        .message-content.bot { background-color: #ecfdf5; border-bottom-left-radius: 0.25rem; }
+        .message-content.user { background-color: #e0f2fe; border-bottom-right-radius: 0.25rem; }
+        .chat-timestamp { font-size: 0.75rem; color: #6b7280; margin-top: 0.25rem; text-align: right; }
+        #drishti-chat-window.active { display: flex; opacity: 1; transform: scale(1); pointer-events: auto; }
+        .chat-options-container { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; padding-left: 3.25rem; }
+        .chat-option-btn { background-color: white; border: 1px solid #10b981; color: #10b981; padding: 0.5rem 1rem; border-radius: 9999px; font-size: 0.875rem; font-weight: 500; cursor: pointer; }
+        .typing-dot { width: 8px; height: 8px; background-color: #9ca3af; border-radius: 50%; animation: typing-bounce 1.2s infinite ease-in-out; }
+        .typing-dot:nth-child(2) { animation-delay: -1.0s; }
+        .typing-dot:nth-child(3) { animation-delay: -0.8s; }
+        @keyframes typing-bounce { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
+        
+        .skeleton { animation: skeleton-pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite; background-color: #e5e7eb; border-radius: 8px; }
+        @keyframes skeleton-pulse { 50% { opacity: 0.5; } }
+        .skeleton-text { height: 1.25rem; width: 85%; margin-bottom: 0.5rem; }
+        .skeleton-title { height: 2rem; width: 60%; margin-bottom: 1rem; }
+        .skeleton-chart { height: 16rem; }
+        
+    </style>
+</head>
+<body class="flex">
+    
+    <div id="messageBox-container"></div>
+    <div id="confirmationModal-container"></div>
+
+    <div id="main-app-content" class="w-full h-screen flex" style="display:none;">
+        
+        <aside class="w-64 h-screen bg-white p-6 border-r border-gray-200 flex flex-col flex-shrink-0">
+            <!-- === LOGO AND EMOJI CHANGES ARE HERE === -->
+            <div class="flex items-center gap-4 pb-6 border-b border-gray-100">
+                <img src="/static/images/logo.png" alt="Kisan Drishti Logo" class="h-12 object-contain" />
+                <h1 class="text-2xl font-extrabold text-emerald-700" data-i18n-key="app_title_short">Kisan Drishti</h1>
+            </div>
+            <nav class="mt-6 flex flex-col gap-2">
+                 <a href="#" class="sidebar-link" data-page="dashboardSection">
+                    <span class="w-6 text-center">📊</span>
+                    <span data-i18n-key="nav_dashboard">Dashboard</span>
+                </a>
+                <a href="#" class="sidebar-link" data-page="analyzeCropSection">
+                    <span class="w-6 text-center">🌿</span>
+                    <span data-i18n-key="nav_analyze_crop">Analyze My Crop</span>
+                </a>
+                <a href="#" class="sidebar-link" data-page="analyzeFieldSection">
+                    <span class="w-6 text-center">🗺️</span>
+                    <span data-i18n-key="nav_analyze_field">Analyze Field & Recommend</span>
+                </a>
+                <a href="#" class="sidebar-link" data-page="fertilizerInfoSection">
+                     <span class="w-6 text-center">🧪</span>
+                     <span data-i18n-key="nav_fertilizer_info">Fertilizer Plan</span>
+                </a>
+                <a href="#" class="sidebar-link" data-page="priceInfoSection">
+                    <span class="w-6 text-center">💰</span>
+                    <span data-i18n-key="nav_price_info">Price Info</span>
+                </a>
+                <a href="#" class="sidebar-link" data-page="myReportsSection">
+                   <span class="w-6 text-center">📄</span>
+                   <span data-i18n-key="nav_my_reports">My Reports</span>
+                </a>
+            </nav>
+            <div class="mt-auto pt-6 border-t border-gray-100 flex flex-col gap-2">
+                 <a href="#" class="sidebar-link" data-page="settingsSection">
+                    <span class="w-6 text-center">⚙️</span>
+                    <span data-i18n-key="nav_settings">Settings</span>
+                </a>
+                <button id="logoutBtn" class="sidebar-link !text-red-600 hover:!bg-red-50">
+                    <span class="w-6 text-center">🚪</span>
+                    <span data-i18n-key="logout">Logout</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <div class="flex-1 flex flex-col h-screen overflow-hidden">
+            <header id="main-header" class="flex-shrink-0 flex justify-between items-center p-6 mb-6">
+                <h2 class="text-3xl font-extrabold text-gray-800 flex items-center gap-3">
+                    <span>🌱</span>
+                    <span data-i18n-key="header_subtitle">Your AI-Powered Agriculture Assistant</span>
+                </h2>
+                <div class="flex items-center gap-4">
+                    <select id="lang-selector" class="form-input !py-2 !w-auto">
+                        <option value="en">English</option>
+                        <option value="hi">हिन्दी</option>
+                    </select>
+                    <div class="flex items-center gap-3 border-l pl-4 border-gray-200">
+                        <img src="https://i.pravatar.cc/40?u=farmer" alt="User Avatar" class="w-10 h-10 rounded-full">
+                        <div>
+                            <p id="navbarUsername" class="font-semibold text-gray-800"></p>
+                            <p class="text-sm text-gray-500" data-i18n-key="user_role">Farmer</p>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <main id="main-content-container" class="flex-1 overflow-y-auto p-6">
+                
+                <div id="dashboardSection" class="content-section">
+                    <div id="dashboard-loader"></div>
+                    <div id="dashboard-content" class="hidden space-y-6">
+                        <div style="background-image: url('https://images.unsplash.com/photo-1560493676-04071c5f467b?q=80&w=1974&auto=format&fit=crop');" class="bg-cover bg-center text-white p-8 rounded-xl text-center relative overflow-hidden">
+                            <div class="absolute inset-0 bg-black/40"></div>
+                            <div class="relative z-10 hero-text">
+                                <h3 class="text-3xl font-bold">Welcome Back, <span id="dashboardWelcomeUser"></span>!</h3>
+                                <p>Your Personalized Farm Overview for <span id="dashboardWelcomeLocation"></span></p>
+                            </div>
+                        </div>
+                        <div id="dashboard-metrics-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <div class="p-5 rounded-xl bg-amber-100 border border-amber-200">
+                                <h4 class="font-semibold text-amber-800 text-lg" data-i18n-key="last_report_summary_title">Last Report Summary</h4>
+                                <p class="text-sm text-amber-600" id="dashboard-report-date"></p>
+                                <p class="text-2xl font-bold text-amber-900 my-2" id="dashboard-report-crop"></p>
+                                <p class="text-amber-700" data-i18n-key="top_recommendation">Top Recommendation</p>
+                            </div>
+                            <div class="p-5 rounded-xl bg-sky-100 border border-sky-200">
+                                <h4 class="font-semibold text-sky-800 text-lg" data-i18n-key="mandi_price_title">Mandi Price</h4>
+                                <p class="text-sm text-sky-600" id="dashboard-price-crop"></p>
+                                <p class="text-4xl font-bold text-sky-900 my-2" id="dashboard-price-value"></p>
+                                <p class="text-sky-700" data-i18n-key="mandi_price_unit">per Quintal (Avg)</p>
+                            </div>
+                            <div class="p-5 rounded-xl bg-fuchsia-100 border border-fuchsia-200">
+                                <h4 class="font-semibold text-fuchsia-800 text-lg" data-i18n-key="soil_type_title">Soil Type</h4>
+                                <p class="text-sm text-fuchsia-600" data-i18n-key="soil_type_subtitle">From last report</p>
+                                <p class="text-2xl font-bold text-fuchsia-900 my-2" id="dashboardSoilType">N/A</p>
+                                <p class="text-fuchsia-700" data-i18n-key="soil_type_confidence">High Confidence</p>
+                            </div>
+                            <div class="p-5 rounded-xl bg-teal-100 border border-teal-200">
+                                <h4 class="font-semibold text-teal-800 text-lg" data-i18n-key="current_weather_title">Current Weather</h4>
+                                <p class="text-sm text-teal-600" id="dashboardWeatherLocation"></p>
+                                <p class="text-4xl font-bold text-teal-900 my-2" id="dashboardCurrentTemp">N/A</p>
+                                <p class="text-teal-700 capitalize" id="dashboardCurrentDesc">N/A</p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <div class="lg:col-span-2 p-6 border bg-white rounded-xl">
+                                <h4 class="font-semibold text-gray-800 text-lg mb-2" data-i18n-key="price_chart_title">Key Crop Prices in Your State</h4>
+                                <div class="h-64">
+                                    <canvas id="mandiPriceChart"></canvas>
+                                </div>
+                            </div>
+                            <div class="bg-emerald-600 text-white p-6 rounded-xl flex flex-col items-center justify-center text-center">
+                                <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-4">
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-8 h-8"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                </div>
+                                <h3 class="font-semibold text-lg" data-i18n-key="cta_analyze_title">Start a New Analysis</h3>
+                                <p class="text-sm text-emerald-200 mb-4" data-i18n-key="cta_analyze_desc">Get fresh crop recommendations for a new plot of land.</p>
+                                <button id="dashboard-cta-btn" class="bg-white text-emerald-700 px-6 py-2 rounded-lg font-bold w-full hover:bg-emerald-50 transition-colors" data-i18n-key="cta_analyze_btn">Analyze New Field</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="dashboard-welcome" class="hidden text-center py-16 px-6 bg-gray-50 rounded-lg">
+                        <h2 class="text-3xl font-bold text-emerald-800 mb-4" data-i18n-key="dashboard_welcome_title">Welcome to Kisan Drishti!</h2>
+                        <p class="text-gray-600 mb-6" data-i18n-key="dashboard_welcome_text">Analyze your first field to unlock your personalized dashboard and see key metrics.</p>
+                        <button id="dashboard-cta-btn" class="btn-primary" data-i18n-key="dashboard_welcome_btn">Analyze My First Field</button>
+                    </div>
+                </div>
+
+                <!-- === ANALYZE CROP SECTION (REFACTORED) === -->
+                <div id="analyzeCropSection" class="content-section">
+                    <div class="content-card max-w-4xl mx-auto">
+                        <h2 class="text-3xl font-bold text-emerald-800 mb-2" data-i18n-key="crop_health_title">Analyze Crop Health</h2>
+                        <p class="text-gray-600 mb-6" data-i18n-key="crop_health_desc">Upload a clear photo of a single plant leaf to detect potential diseases or health issues.</p>
+                        <div class="space-y-8">
+                            <div class="bg-gray-50 p-6 rounded-lg border">
+                                <form id="cropAnalysisForm" class="space-y-4">
+                                    <div>
+                                        <label for="cropImageUpload" class="block text-gray-700 text-sm font-semibold mb-2" data-i18n-key="crop_health_upload_label">Upload Crop Image:</label>
+                                        <input type="file" id="cropImageUpload" accept="image/*" required class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-emerald-100 hover:file:bg-emerald-200 cursor-pointer">
+                                        <div id="cropImagePreview" class="mt-3 text-center"></div>
+                                    </div>
+                                    <button type="button" id="analyzeCropBtn" class="btn-primary w-full !py-3 flex items-center justify-center">
+                                        <span data-i18n-key="analyze_crop_btn">Analyze Crop</span><span class="loader" style="display:none;"></span>
+                                    </button>
+                                </form>
+                            </div>
+                            <div id="cropResultsDisplay" class="content-display bg-white p-6 rounded-lg border min-h-[200px] flex items-center justify-center">
+                                <p class="text-gray-500 text-center" data-i18n-key="crop_health_results_placeholder">Analysis results will appear here.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- === ANALYZE FIELD SECTION (REFACTORED) === -->
+                <div id="analyzeFieldSection" class="content-section">
+                    <div class="content-card max-w-4xl mx-auto">
+                        <h2 class="text-3xl font-bold text-emerald-800 mb-2" data-i18n-key="field_analysis_title">Analyze Field & Get Recommendations</h2>
+                        <p class="text-gray-600 mb-6" data-i18n-key="field_analysis_desc">Provide your field's location and a soil image for tailored recommendations.</p>
+                        <div class="space-y-8">
+                            <div class="bg-gray-50 p-6 rounded-lg border">
+                                <form id="fieldAnalysisForm" class="space-y-5">
+                                    <div>
+                                        <label for="soilImageUpload" class="block text-gray-700 text-sm font-semibold mb-2" data-i18n-key="field_analysis_upload_label">1. Upload Soil Image (Required)</label>
+                                        <input type="file" id="soilImageUpload" accept="image/*" required class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-emerald-100 hover:file:bg-emerald-200 cursor-pointer">
+                                        <!-- THIS IS THE NEW LINE TO ADD -->
+                                        <div id="soilImagePreview" class="mt-3 text-center"></div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-gray-700 text-sm font-semibold mb-2" data-i18n-key="field_analysis_location_label">2. Field Location (Required)</label>
+                                        <div class="flex items-center space-x-2">
+                                            <input type="number" id="latitude" placeholder="Latitude" step="any" required class="form-input">
+                                            <input type="number" id="longitude" placeholder="Longitude" step="any" required class="form-input">
+                                        </div>
+                                        <button type="button" id="getLocationBtn" class="text-sm mt-2 bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg hover:bg-blue-200" data-i18n-key="get_my_location_btn">📍 Get My Location</button>
+                                    </div>
+                                    <div>
+                                        <label for="lastCrop" class="block text-gray-700 text-sm font-semibold mb-2" data-i18n-key="field_analysis_last_crop_label">3. Last Crop Grown (Optional)</label>
+                                        <input type="text" id="lastCrop" placeholder="e.g. Wheat, Rice" class="form-input">
+                                    </div>
+                                    <button type="button" id="analyzeFieldBtn" class="btn-primary w-full !py-3 flex items-center justify-center">
+                                        <span data-i18n-key="analyze_field_btn">Analyze Field</span><span class="loader" style="display:none;"></span>
+                                    </button>
+                                </form>
+                            </div>
+                            <div id="fieldResultsDisplay" class="content-display bg-white rounded-lg min-h-[400px]">
+                                <p class="text-gray-500 text-center mt-16" data-i18n-key="field_analysis_results_placeholder">Field analysis report will appear here.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <button id="saveReportBtn" class="btn-primary mt-6 w-full hidden" data-i18n-key="save_report_btn">💾 Save This Field Report</button>
+                </div>
+
+                <!-- === FERTILIZER PLAN SECTION (REFACTORED) === -->
+                <div id="fertilizerInfoSection" class="content-section">
+                    <div class="content-card max-w-4xl mx-auto">
+                        <h2 class="text-3xl font-bold text-emerald-800 mb-2" data-i18n-key="fertilizer_title">Fertilizer Recommendation Plan</h2>
+                        <p class="text-gray-600 mb-6" data-i18n-key="fertilizer_desc">Select a saved field report to generate a tailored fertilizer application plan.</p>
+                        <div class="space-y-8">
+                            <div class="bg-gray-50 p-6 rounded-lg border">
+                                <form id="fertilizerForm" class="space-y-4">
+                                    <div>
+                                        <label for="fertilizerReportSelect" class="block text-gray-700 text-sm font-semibold mb-2" data-i18n-key="fertilizer_select_label">1. Select a Saved Report:</label>
+                                        <select id="fertilizerReportSelect" required class="form-input">
+                                            <option value="">-- Loading your reports... --</option>
+                                        </select>
+                                    </div>
+                                    <button type="button" id="getFertilizerPlanBtn" class="btn-primary w-full !py-3 flex items-center justify-center">
+                                        <span data-i18n-key="fertilizer_get_plan_btn">Get Fertilizer Plan</span><span class="loader" style="display:none;"></span>
+                                    </button>
+                                </form>
+                            </div>
+                            <div id="fertilizerResultsDisplay" class="content-display bg-white p-6 rounded-lg border min-h-[200px] flex items-center justify-center">
+                                <p class="text-gray-500 text-center" data-i18n-key="fertilizer_results_placeholder">Your personalized fertilizer plan will appear here.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- === PRICE INFO SECTION (REFACTORED) === -->
+                <div id="priceInfoSection" class="content-section">
+                    <div class="content-card max-w-4xl mx-auto">
+                        <h2 class="text-3xl font-bold text-emerald-800 mb-2" data-i18n-key="price_calculator_title">Mandi Price Calculator</h2>
+                        <p class="text-gray-600 mb-6" data-i18n-key="price_calculator_desc">Estimate the potential revenue from your field based on recent market prices.</p>
+                        <div class="space-y-8">
+                            <div class="bg-gray-50 p-6 rounded-lg border">
+                                <form id="priceInfoForm" class="space-y-4">
+                                    <div>
+                                        <label for="price_state" class="block text-gray-700 text-sm font-semibold mb-2" data-i18n-key="price_calculator_location_label">1. Select Location</label>
+                                        <select id="price_state" required class="form-input mb-2"><option value="" data-i18n-key="select_state_placeholder">-- Select State --</option></select>
+                                        <select id="price_district" required class="form-input" disabled><option value="" data-i18n-key="select_district_placeholder">-- Select State First --</option></select>
+                                    </div>
+                                    <div>
+                                        <label for="price_crop" class="block text-gray-700 text-sm font-semibold mb-2" data-i18n-key="price_calculator_crop_label">2. Crop Name</label>
+                                        <input type="text" id="price_crop" placeholder="e.g., Rice, Wheat" required class="form-input">
+                                    </div>
+                                    <div>
+                                        <label for="price_area" class="block text-gray-700 text-sm font-semibold mb-2" data-i18n-key="price_calculator_area_label">3. Field Area (in Acres)</label>
+                                        <input type="number" id="price_area" placeholder="e.g., 5" step="any" required class="form-input">
+                                    </div>
+                                    <button type="button" id="findPriceBtn" class="btn-primary w-full !py-3 flex items-center justify-center">
+                                        <span data-i18n-key="find_price_btn">Find Price & Estimate Revenue</span><span class="loader" style="display:none;"></span>
+                                    </button>
+                                </form>
+                            </div>
+                            <div id="priceResultsDisplay" class="content-display bg-white p-6 rounded-lg border min-h-[200px] flex items-center justify-center">
+                                <p class="text-gray-500 text-center" data-i18n-key="price_calculator_results_placeholder">Price information will appear here.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="myReportsSection" class="content-section">
+                    <div class="content-card">
+                        <h2 class="text-3xl font-bold text-emerald-800 mb-6" data-i18n-key="my_saved_reports_title">My Saved Reports</h2>
+                        <div id="myReportsContent" class="content-display bg-gray-50 p-6 rounded-lg border"></div>
+                    </div>
+                </div>
+
+                <div id="settingsSection" class="content-section">
+                    <div class="content-card">
+                        <h2 class="text-3xl font-bold text-emerald-800 mb-6" data-i18n-key="settings_title">Settings & Profile</h2>
+                        <div class="space-y-8">
+                            <div class="bg-white p-6 rounded-lg border">
+                                <h3 class="text-xl font-semibold text-gray-700 mb-4" data-i18n-key="profile_info_title">Profile Information</h3>
+                                <p class="text-gray-700"><span data-i18n-key="current_username">Current Username</span>: <strong id="settingsUsername" class="text-emerald-700"></strong></p>
+                            </div>
+                            <div class="bg-white p-6 rounded-lg border">
+                                <h3 class="text-xl font-semibold text-gray-700 mb-4" data-i18n-key="change_password_title">Change Password</h3>
+                                <form id="changePasswordForm" class="space-y-4 max-w-md">
+                                    <div>
+                                        <label for="currentPassword" class="block text-sm font-medium text-gray-700" data-i18n-key="current_password_label">Current Password</label>
+                                        <input type="password" id="currentPassword" required class="form-input mt-1">
+                                    </div>
+                                    <div>
+                                        <label for="newPassword" class="block text-sm font-medium text-gray-700" data-i18n-key="new_password_label">New Password</label>
+                                        <input type="password" id="newPassword" required class="form-input mt-1">
+                                    </div>
+                                    <div>
+                                        <label for="confirmNewPassword" class="block text-sm font-medium text-gray-700" data-i18n-key="confirm_new_password_label">Confirm New Password</label>
+                                        <input type="password" id="confirmNewPassword" required class="form-input mt-1">
+                                    </div>
+                                    <button type="submit" id="changePasswordBtn" class="btn-primary flex items-center justify-center">
+                                        <span data-i18n-key="update_password_btn">Update Password</span><span class="loader" style="display:none;"></span>
+                                    </button>
+                                </form>
+                            </div>
+                            <div class="bg-red-50 border-l-4 border-red-500 p-6 rounded-r-lg">
+                                <h3 class="text-xl font-semibold text-red-800 mb-2" data-i18n-key="danger_zone_title">Danger Zone</h3>
+                                <p class="text-red-700 mb-4" data-i18n-key="danger_zone_text">Deleting your account is permanent and cannot be undone. All your saved reports will be lost.</p>
+                                <button id="deleteAccountBtn" class="bg-red-600 text-white font-bold py-2 px-4 rounded hover:bg-red-700 transition-colors" data-i18n-key="delete_account_btn">
+                                    Delete My Account
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+    
+    <div id="drishti-chat-widget" style="display: none;">
+        <div id="drishti-cta-bubble">
+            <p>Hello! Have a question? Ask me anything about your farm!</p>
+            <button id="drishti-cta-close" aria-label="Close welcome message">×</button>
+        </div>
+        <button id="drishti-chat-toggle" aria-label="Open Drishti AI Assistant" class="fixed bottom-5 right-5 bg-emerald-600 text-white w-16 h-16 rounded-full shadow-lg flex items-center justify-center p-3 hover:bg-emerald-700 transition-transform transform hover:scale-110 z-50">
+            <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center p-1">
+                <img src="/static/images/logo.png" alt="Drishti AI" class="w-full h-full object-contain">
+            </div>
+        </button>
+        <div id="drishti-chat-window" class="fixed bottom-24 right-5 w-full max-w-sm h-[60vh] bg-white rounded-2xl shadow-2xl flex flex-col transition-all duration-300 transform scale-95 opacity-0 pointer-events-none z-50 hidden">
+            <div class="bg-emerald-600 text-white p-4 rounded-t-2xl flex justify-between items-center">
+                <div>
+                    <h3 class="font-bold text-lg">Drishti AI Assistant</h3>
+                    <p class="text-sm opacity-90">Your farming expert</p>
+                </div>
+                <button id="drishti-chat-close" class="text-2xl">×</button>
+            </div>
+            <div id="drishti-message-area" class="flex-1 p-4 overflow-y-auto space-y-4">
+            </div>
+            <div id="drishti-typing-indicator" class="px-4 pb-2 hidden">
+                 <div class="chat-message-row bot">
+                    <div class="chat-avatar bot !bg-transparent">
+                        <img src="/static/images/logo.png" alt="Drishti" class="w-full h-full object-cover rounded-full">
+                    </div>
+                    <div class="message-content bot !bg-gray-200">
+                        <div class="flex items-center space-x-1">
+                            <span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t p-3">
+                <form id="drishti-chat-form" class="flex space-x-2">
+                    <input type="text" id="drishti-chat-input" placeholder="Ask a question..." class="form-input flex-1 !rounded-full" autocomplete="off" required>
+                    <button type="submit" class="btn-primary !rounded-full !p-3 flex items-center justify-center" aria-label="Send Message">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6"><path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" /></svg>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <script type="module" src="/script.js"></script>
+</body>
+</html>
