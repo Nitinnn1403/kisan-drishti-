@@ -28,7 +28,7 @@ with app.app_context():
     logger.info("Application cache cleared on startup.")
     
     database.init_connection_pool()
-    services.load_all_data()
+    #services.load_all_data()
     services.init_cache(cache)
     database.create_tables()
 
