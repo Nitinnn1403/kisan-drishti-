@@ -8,3 +8,4 @@ gunicorn
 psycopg2-binary
 python-dotenv
 Flask-Caching
+numpy==1.23.5
