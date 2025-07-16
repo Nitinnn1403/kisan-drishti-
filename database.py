@@ -6,9 +6,11 @@ from psycopg2 import pool
 from psycopg2.extras import DictCursor
 import bcrypt
 import logging
+from config import MYSQL_HOST, MYSQL_USER, MYSQL_PASSWORD, MYSQL_DB
 
 DATABASE_URL = os.getenv('DATABASE_URL')
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 pg_pool = None
 
@@ -45,6 +47,7 @@ def create_tables():
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
                 );
             """)
+            # Create 'field_reports' table
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS field_reports (
                     id SERIAL PRIMARY KEY,
@@ -67,6 +70,7 @@ def create_tables():
 # --- All functions below are updated for PostgreSQL ---
 
 def register_user(username, password):
+    """Registers a new user in the database."""
     conn = None
     try:
         conn = get_db_connection()
@@ -83,6 +87,8 @@ def register_user(username, password):
             )
             user_id = cursor.fetchone()['id']
         conn.commit()
+        user_id = cursor.lastrowid
+
         logger.info(f"User {username} registered successfully with ID: {user_id}.")
         return {"success": True, "user_id": user_id, "username": username}, 201
     except Exception as e:
@@ -93,6 +99,7 @@ def register_user(username, password):
             release_db_connection(conn)
 
 def login_user(username, password):
+    """Authenticates a user against the database."""
     conn = None
     try:
         conn = get_db_connection()

@@ -6,7 +6,10 @@ import io
 import os
 import re
 import numpy as np
+#import tensorflow as tf
 from PIL import Image
+#from tensorflow.keras.preprocessing import image as keras_image # type: ignore
+#from tensorflow.keras.applications.mobilenet_v2 import preprocess_input # type: ignore
 from sklearn.metrics.pairwise import cosine_similarity
 from datetime import datetime, timedelta
 import inspect
@@ -83,8 +86,8 @@ CROP_ALIASES = {'rice': 'rice|paddy',
                 'cotton': 'cotton',
                 'sugarcane': 'sugarcane',
                 'potato': 'potato'}
-'''
-def load_ml_models():
+
+'''def load_ml_models():
     global _PLANT_HEALTH_MODEL, _SOIL_TYPE_MODEL
     if PLANT_HEALTH_MODEL_PATH and os.path.exists(PLANT_HEALTH_MODEL_PATH):
         try:
@@ -97,14 +100,14 @@ def load_ml_models():
             _SOIL_TYPE_MODEL = tf.keras.models.load_model(SOIL_TYPE_MODEL_PATH)
             logger.info("Soil type model loaded successfully.")
         except Exception as e:
-            logger.error(f"Error loading soil type model: {e}")
+            logger.error(f"Error loading soil type model: {e}")'''
 
 def load_datasets():
     global _PLANT_HEALTH_MODEL, _SOIL_TYPE_MODEL, _RECOMMEND_DF, _STATE_MACRO_NUTRIENTS, _CROP_NUTRIENTS_DF, _SOIL_NUTRIENTS_DF, _MANDI_DF, _APP_CONTEXT_STRING, _DISTRICT_TO_STATE_MAP, _HISTORICAL_PRICES
 
     try:
-        if PLANT_HEALTH_MODEL_PATH and os.path.exists(PLANT_HEALTH_MODEL_PATH): _PLANT_HEALTH_MODEL = tf.keras.models.load_model(PLANT_HEALTH_MODEL_PATH)
-        if SOIL_TYPE_MODEL_PATH and os.path.exists(SOIL_TYPE_MODEL_PATH): _SOIL_TYPE_MODEL = tf.keras.models.load_model(SOIL_TYPE_MODEL_PATH)
+        #if PLANT_HEALTH_MODEL_PATH and os.path.exists(PLANT_HEALTH_MODEL_PATH): _PLANT_HEALTH_MODEL = tf.keras.models.load_model(PLANT_HEALTH_MODEL_PATH)
+        #if SOIL_TYPE_MODEL_PATH and os.path.exists(SOIL_TYPE_MODEL_PATH): _SOIL_TYPE_MODEL = tf.keras.models.load_model(SOIL_TYPE_MODEL_PATH)
 
         if RECOMMEND_DATA_PATH and os.path.exists(RECOMMEND_DATA_PATH):
             _RECOMMEND_DF = pd.read_csv(RECOMMEND_DATA_PATH)
@@ -173,10 +176,8 @@ def load_datasets():
         logger.error(f"Failed to load data: {e}", exc_info=True)
         
 def load_all_data():
-    load_ml_models()
+    #load_ml_models()
     load_datasets()
-
-'''
 
 def find_state_from_district(district: str) -> str:
     state = _DISTRICT_TO_STATE_MAP.get(district.lower().strip())
