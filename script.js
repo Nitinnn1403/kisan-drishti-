@@ -538,7 +538,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const addDrishtiResponse = (response) => {
         const messageRow = document.createElement('div');
         messageRow.className = 'chat-message-row bot';
-        
+
+        let formattedContent = '';
+
+        if (typeof response.content === 'string') {
+            formattedContent = response.content.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        } else if (Array.isArray(response.content)) {
+            formattedContent = response.content.map(item => {
+                const title = item.title ? `<strong>${item.title}</strong><br>` : '';
+                const description = item.description || '';
+                return `${title}${description.replace(/\n/g, '<br>')}`;
+            }).join('<br><br>'); 
+        } else {
+            formattedContent = 'Received complex data. Please check the console.';
+            console.log('Received unexpected response content:', response.content);
+        }
+
         messageRow.innerHTML = `
             <div class="chat-avatar bot !bg-transparent">
                 <img src="/static/images/logo.png" alt="Drishti" class="w-full h-full object-cover rounded-full">
