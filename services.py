@@ -31,12 +31,6 @@ CROP_API_URL = os.getenv('CROP_API_URL')
 SOIL_API_URL = os.getenv('SOIL_API_URL')
 CHATBOT_API_URL = os.getenv('CHATBOT_API_URL')
 
-AVAILABLE_TOOLS = {
-    func_name: globals()[func_name]
-    for func_name in TOOL_FUNCTIONS
-    if func_name in globals()
-}
-
 SOIL_TRANSLATIONS_HI = {
     "alluvial soil": "जलोढ़ मिट्टी",
     "black soil": "काली मिट्टी",
@@ -845,6 +839,12 @@ def get_gemini_report_advice(prompt):
         return [{"title": "Error", "description": "Sorry, an error occurred while contacting the AI for advice."}]
 
 def get_drishti_response(user_message, user_id, conversation_history=[]):
+
+    AVAILABLE_TOOLS = {
+        func_name: globals()[func_name]
+        for func_name in TOOL_FUNCTIONS
+        if func_name in globals()
+    }
 
     if not GEMINI_API_KEY or not GEMINI_API_URL:
         return {"type": "text", "content": "Chatbot AI service is not configured."}, conversation_history
