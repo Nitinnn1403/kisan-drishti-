@@ -845,8 +845,7 @@ def get_gemini_report_advice(prompt):
         return [{"title": "Error", "description": "Sorry, an error occurred while contacting the AI for advice."}]
 
 def get_drishti_response(user_message, user_id, conversation_history=[]):
-    from .tools import get_tools_schema
-    
+
     if not GEMINI_API_KEY or not GEMINI_API_URL:
         return {"type": "text", "content": "Chatbot AI service is not configured."}, conversation_history
 
