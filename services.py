@@ -840,119 +840,100 @@ def get_gemini_report_advice(prompt):
         return [{"title": "Error", "description": "Sorry, an error occurred while contacting the AI for advice."}]
 
 def get_drishti_response(user_message, user_id, conversation_history=[]):
-    from .tool_registry import AVAILABLE_TOOLS # Use relative import
-    from .tools import get_tools_schema # Use relative import
+    from .tool_registry import AVAILABLE_TOOLS
+    from .tools import get_tools_schema
 
-    # This is the URL from your config that points to the HF service
-    if not CHATBOT_API_URL:
-        return {"type": "text", "content": "Chatbot service is not configured."}, conversation_history
+    if not GEMINI_API_KEY or not GEMINI_API_URL:
+        return {"type": "text", "content": "Chatbot AI service is not configured."}, conversation_history
 
     headers = {"Content-Type": "application/json"}
+    api_url = f"{GEMINI_API_URL}?key={GEMINI_API_KEY}"
 
-    # --- Step 1: Define the AI's instructions (System Prompt) ---
-    system_prompt = """You are 'Drishti', a friendly and expert AI agricultural assistant. Your goal is to help Indian farmers.
-- First, understand the user's request.
-- Second, check if one of your available tools can help.
-- If a tool is a good match, you MUST respond ONLY with the tool code in the specified format.
-- If the user is just making small talk (e.g., "hello"), just respond with a friendly message.
-- If you need more information to use a tool, ask a clarifying question.
-- Your tools are:
-{tools_json}
+    # --- Step 1: Define the System Prompt - The AI's "Personality" and "Rules" ---
+    system_prompt_text = """
+    You are 'Drishti', a friendly, expert AI agricultural assistant for the Kisan Drishti application.
+    Your personality is helpful, knowledgeable, and focused ONLY on farming.
 
-- When you use a tool, your response MUST look EXACTLY like this example, with no other text:
-<tool_code>
-{{"name": "get_mandi_price", "arguments": {{"district": "Pune", "crop": "wheat"}}}}
-</tool_code>
-""".format(tools_json=json.dumps(get_tools_schema(), indent=2))
+    **Your Core Rules:**
+    1.  **Stay in Character:** You are Drishti, a farming expert. Do not reveal you are an AI model.
+    2.  **Stay on Topic:** You MUST refuse to answer any questions that are not related to farming, agriculture, crop prices, fertilizer, or the features of the Kisan Drishti app. If asked about an unrelated topic, politely state: "I can only help with farming-related questions."
+    3.  **Use Your Tools:** Your main job is to use the provided functions to answer user questions. Do not try to make up answers that a tool could provide.
+    4.  **Be Clear and Simple:** Use simple language that is easy for a farmer to understand.
+    """
+    system_instruction = {"parts": [{"text": system_prompt_text}]}
 
-    # --- Step 2: The Manager (this code) calls the AI Brain for advice ---
-    messages = [{"role": "system", "content": system_prompt}] + conversation_history + [{"role": "user", "content": user_message}]
+
+    # --- Step 2: Prepare the message history and tool definitions for the Gemini API ---
+    gemini_history = []
+    for message in conversation_history:
+        # Gemini uses 'model' for the assistant role
+        role = 'model' if message['role'] == 'assistant' else 'user'
+        gemini_history.append({"role": role, "parts": [{"text": message.get('content', '')}]})
+    gemini_history.append({"role": "user", "parts": [{"text": user_message}]})
     
-    # We now need to create the raw prompt string for the HF service
-    # NOTE: We need a dummy tokenizer here just for the template. This avoids installing all of transformers.
-    # A simple string replacement is more efficient.
-    prompt = ""
-    for msg in messages:
-        prompt += f"<|im_start|>{msg['role']}\n{msg['content']}<|im_end|>\n"
-    prompt += "<|im_start|>assistant\n"
+    tools = [{"function_declarations": get_tools_schema(for_gemini=True)}]
+
+    # --- Step 3: First call to Gemini to see if it wants to use a tool ---
+    payload = {
+        "contents": gemini_history,
+        "system_instruction": system_instruction, # Add the system prompt here
+        "tools": tools
+    }
 
     try:
-        # The payload is now a simple list with one string
-        payload = {"data": [prompt]}
-        response = requests.post(CHATBOT_API_URL, headers=headers, json=payload, timeout=90)
+        response = requests.post(api_url, headers=headers, json=payload, timeout=90)
         response.raise_for_status()
-        ai_raw_response = response.json()['choices'][0]['message'] if 'choices' in response.json() else response.json().get("data")[0]
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Cannot connect to Chatbot API: {e}")
-        return {"type": "text", "content": "Sorry, I can't connect to my AI brain."}, messages
-    
-    # Append the AI's thought process (the raw response) to the history
-    messages.append({"role": "assistant", "content": ai_raw_response})
-
-    # --- Step 3: The Manager parses the AI's advice and acts ---
-    tool_match = re.search(r'<tool_code>(.*?)</tool_code>', ai_raw_response)
-    
-    if not tool_match:
-        # The AI did not call a tool, so its response is the final answer
-        return {"type": "text", "content": ai_raw_response}, messages
-
-    # The AI wants to use a tool
-    try:
-        tool_data_str = tool_match.group(1)
-        tool_data = json.loads(tool_data_str)
-        tool_name = tool_data.get("name")
-        tool_args = tool_data.get("arguments", {})
-
-        if tool_name not in AVAILABLE_TOOLS:
-            return {"type": "text", "content": "Sorry, I tried to use a tool that doesn't exist."}, messages
-
-        function_to_call = AVAILABLE_TOOLS[tool_name]
-        if 'user_id' in inspect.signature(function_to_call).parameters:
-            tool_args['user_id'] = user_id
+        candidate = response.json().get('candidates', [{}])[0]
         
-        tool_output_raw = function_to_call(**tool_args)
+        # Check if the model's response was to call a function
+        if candidate.get('content', {}).get('parts', [{}])[0].get("functionCall"):
+            ai_response_part = candidate['content']['parts'][0]
+            # --- Step 4a: Gemini wants to use a tool ---
+            tool_call = ai_response_part["functionCall"]
+            tool_name = tool_call.get("name")
+            tool_args = tool_call.get("args", {})
 
-        # This is your existing, working logic for creating UI buttons
-        if tool_name in ["list_my_reports", "create_fertilizer_plan"] and isinstance(tool_output_raw, list):
-            options = []
-            for report in tool_output_raw:
-                label = f"Report #{report.get('report_id')} from {report.get('date')}"
-                payload_msg = f"Create a fertilizer plan for report {report.get('report_id')}" if tool_name == 'create_fertilizer_plan' else f"Show me details for report {report.get('report_id')}"
-                options.append({"label": label, "payload": {"message": payload_msg}})
-            
-            reply = {
-                "type": "options",
-                "content": "Of course. Please select one of your saved reports:",
-                "options": options
-            }
-            messages.append({"role": "tool", "name": tool_name, "content": f"Displayed {len(options)} reports."})
-            return reply, messages
+            if tool_name not in AVAILABLE_TOOLS:
+                reply_content = "Sorry, I tried to use a tool that doesn't exist."
+            else:
+                # Execute the tool
+                if 'user_id' in inspect.signature(AVAILABLE_TOOLS[tool_name]).parameters: tool_args['user_id'] = user_id
+                tool_output = AVAILABLE_TOOLS[tool_name](**tool_args)
 
-        # This block now makes the SECOND call to the AI to summarize the tool result
-        messages.append({"role": "tool", "name": tool_name, "content": json.dumps(tool_output_raw)})
+                # This is your existing logic for handling UI option buttons
+                if tool_name in ["list_my_reports", "create_fertilizer_plan"] and isinstance(tool_output, list):
+                    options = []
+                    for report in tool_output:
+                        label = f"Report #{report.get('report_id')} from {report.get('date')}"
+                        payload_msg = f"Create a fertilizer plan for report {report.get('report_id')}" if tool_name == 'create_fertilizer_plan' else f"Show me details for report {report.get('report_id')}"
+                        options.append({"label": label, "payload": {"message": payload_msg}})
+                    reply = {"type": "options", "content": "Of course. Please select one of your saved reports:", "options": options}
+                    return reply, conversation_history
+                
+                # --- Step 4b: Send the tool result back to Gemini for a natural language summary ---
+                gemini_history.append({"role": "model", "parts": [{"functionCall": tool_call}]})
+                gemini_history.append({"role": "function", "parts": [{"functionResponse": {"name": tool_name, "response": {"result": json.dumps(tool_output)}}}]})
+                
+                final_payload = {
+                    "contents": gemini_history,
+                    "system_instruction": system_instruction # Re-send the instructions
+                }
+                final_response = requests.post(api_url, headers=headers, json=final_payload, timeout=90)
+                final_response.raise_for_status()
+                reply_content = final_response.json()['candidates'][0]['content']['parts'][0].get('text', "I've processed your request.")
+        else:
+            # --- Step 4c: No tool was called, just a simple chat reply ---
+            reply_content = candidate.get('content', {}).get('parts', [{}])[0].get('text', "I'm not sure how to respond.")
+
+        # --- Step 5: Finalize the response for the frontend ---
+        final_reply = {"type": "text", "content": reply_content}
+        updated_history = conversation_history + [{"role": "user", "content": user_message}, {"role": "assistant", "content": reply_content}]
         
-        # Re-build the prompt for the second call
-        prompt_2 = ""
-        for msg in messages:
-            role = msg['role']
-            content = msg.get('content', '')
-            if not content: # Handle potential empty content from assistant tool calls
-                 if msg.get('tool_calls'): content = json.dumps(msg.get('tool_calls'))
-                 else: continue
-            prompt_2 += f"<|im_start|>{role}\n{content}<|im_end|>\n"
-        prompt_2 += "<|im_start|>assistant\n"
-        
-        final_payload = {"data": [prompt_2]}
-        final_response = requests.post(CHATBOT_API_URL, headers=headers, json=final_payload, timeout=90)
-        final_response.raise_for_status()
-        final_ai_message = final_response.json().get("data")[0]
-
-        messages.append({"role": "assistant", "content": final_ai_message})
-        return {"type": "text", "content": final_ai_message}, messages
+        return final_reply, updated_history
 
     except Exception as e:
-        logger.error(f"FATAL error in tool execution block: {e}", exc_info=True)
-        return {"type": "text", "content": "A critical error occurred while handling your request."}, messages
+        logger.error(f"FATAL error in Gemini API call: {e}", exc_info=True)
+        return {"type": "text", "content": "A critical error occurred while contacting the AI assistant."}, conversation_history
     
 def create_fertilizer_plan(user_id, report_id: int = None):
     """
