@@ -840,6 +840,14 @@ def get_gemini_report_advice(prompt):
         return [{"title": "Error", "description": "Sorry, an error occurred while contacting the AI for advice."}]
 
 def get_drishti_response(user_message, user_id, conversation_history=[]):
+    if user_message == "I'd like to check a mandi price.":
+        reply_content = "Of course! To check the mandi price, please tell me the crop and the district, like: **Wheat in Pune**"
+        new_history = conversation_history + [
+            {"role": "user", "content": user_message},
+            {"role": "assistant", "content": reply_content}
+        ]
+        return {"type": "text", "content": reply_content}, new_history
+    
     if not CHATBOT_API_URL:
         return {"type": "text", "content": "Chatbot service is not configured."}, conversation_history
     
