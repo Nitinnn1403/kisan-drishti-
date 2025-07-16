@@ -261,7 +261,7 @@ def get_specific_report(user_id, report_id: int):
         return f"Error: I could not find a report with the ID {report_id}."
         
     try:
-        report_data = json.loads(report_record['report_data'])
+        report_data = json.loads(report_record['report_data']) if isinstance(report_record['report_data'], str) else report_record['report_data']
         loc = report_data.get('location', {})
         soil = report_data.get('soil_analysis', {})
         recs = report_data.get('recommendations', {})

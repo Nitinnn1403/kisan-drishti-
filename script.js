@@ -353,6 +353,8 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) { elements.myReportsContent.innerHTML = `<p class="text-red-600 text-center">${error.message}</p>`; }
     }
 
+    // REPLACE the old function in script.js with this new one
+
     async function populateFertilizerReportDropdown() {
         const select = elements.fertilizerReportSelect;
         if (!select) return;
@@ -364,7 +366,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.reports && data.reports.length > 0) {
                 select.innerHTML = '<option value="">-- Select a report --</option>';
                 data.reports.forEach(report => {
-                    const reportData = JSON.parse(report.report_data);
+                    // --- THIS IS THE FIX ---
+                    // This safely handles the report data whether it's a string or an object
+                    const reportData = typeof report.report_data === 'string'
+                        ? JSON.parse(report.report_data)
+                        : report.report_data;
+
                     const reportDate = new Date(reportData.generated_at).toLocaleDateString();
                     const topCrop = reportData.recommendations?.recommended_crops?.[0] || 'N/A';
                     const option = new Option(`Report from ${reportDate} (Crop: ${topCrop})`, report.id);
@@ -375,6 +382,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 select.innerHTML = '<option value="">-- No saved reports found --</option>';
             }
         } catch (error) {
+            console.error("Error populating fertilizer dropdown:", error); // Added for better debugging
             UI.showMessage('Could not load your reports.', 'error');
             select.innerHTML = '<option value="">-- Error loading reports --</option>';
         }
