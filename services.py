@@ -839,10 +839,9 @@ def get_gemini_report_advice(prompt):
         logger.error(f"Error contacting or parsing Gemini API response: {e}")
         return [{"title": "Error", "description": "Sorry, an error occurred while contacting the AI for advice."}]
 
-
 def get_drishti_response(user_message, user_id, conversation_history=[]):
     if not CHATBOT_API_URL:
-        return {"type": "text", "content": "Chatbot is not configured."}, conversation_history
+        return {"type": "text", "content": "Chatbot service is not configured."}, conversation_history
     
     from tool_registry import AVAILABLE_TOOLS
     from tools import get_tools_schema
@@ -858,39 +857,77 @@ def get_drishti_response(user_message, user_id, conversation_history=[]):
     - You do not know anything about other websites or services other than Kisan Drishti. If a user asks about something outside your knowledge, say: "I don't have information on that. I can only help with farming-related questions."
     - If a tool returns data with a 'note' field, you MUST include that information in your response, but phrase it naturally. For example, instead of just saying the note, you might say 'Based on live market data...' or 'Please note, this data is from a past date...'.
     """
-
+        
+    # Add the new user message to the conversation
     current_conversation = conversation_history + [{"role": "user", "content": user_message}]
     
-    # The Gradio API expects all inputs to be strings, so we use json.dumps
-    payload = {
-        "data": [
-            system_prompt,
-            json.dumps(current_conversation),
-            json.dumps(get_tools_schema())
-        ]
-    }
+    # --- Call 1: Get the AI's decision (talk or use a tool) ---
+    payload = {"data": [system_prompt, json.dumps(current_conversation), json.dumps(get_tools_schema())]}
     
     try:
-        # First API call to the chatbot model
         response = requests.post(CHATBOT_API_URL, json=payload, timeout=90)
         response.raise_for_status()
-        
-        # Gradio returns a JSON string, which we need to parse
         api_result_str = response.json().get("data")[0]
-        ai_message = json.loads(api_result_str)
+        ai_response_message = json.loads(api_result_str)
         
-        # --- This part handles the response ---
-        # For this guide, we will keep it simple. If the AI wants to use a tool,
-        # we would need more logic here. For now, we'll just return its text response.
-        final_content = ai_message.get('content', "I'm not sure how to respond.")
-        current_conversation.append({"role": "assistant", "content": final_content})
-        reply = {"type": "text", "content": final_content}
-        
-        return reply, current_conversation
+        # Append the AI's decision to our history
+        current_conversation.append(ai_response_message)
 
     except Exception as e:
-        logger.error(f"Error calling Chatbot API: {e}")
-        return {"type": "text", "content": "The AI chatbot is currently unavailable."}, conversation_history
+        logger.error(f"Error in Chatbot API Call 1: {e}")
+        return {"type": "text", "content": "The AI chatbot is having trouble thinking right now."}, current_conversation
+
+    # --- Check if the AI wants to use a tool ---
+    if ai_response_message.get("tool_calls"):
+        tool_call = ai_response_message["tool_calls"][0]
+        tool_name = tool_call["function"]["name"]
+        
+        if tool_name not in AVAILABLE_TOOLS:
+            return {"type": "text", "content": f"Sorry, I don't know how to use the tool '{tool_name}'."}, current_conversation
+        
+        try:
+            # --- Execute the Tool Locally ---
+            function_to_call = AVAILABLE_TOOLS[tool_name]
+            tool_args = json.loads(tool_call["function"]["arguments"])
+            
+            # Pass user_id if the tool needs it
+            if 'user_id' in inspect.signature(function_to_call).parameters:
+                tool_args['user_id'] = user_id
+            
+            tool_output = function_to_call(**tool_args)
+
+            # Append the tool's result to the conversation
+            current_conversation.append({
+                "role": "tool",
+                "content": json.dumps(tool_output),
+                "tool_call_id": tool_call['id']
+            })
+            
+            # --- Call 2: Send the tool result back to the AI for a final answer ---
+            final_payload = {"data": [system_prompt, json.dumps(current_conversation), json.dumps(get_tools_schema())]}
+            final_response = requests.post(CHATBOT_API_URL, json=final_payload, timeout=90)
+            final_response.raise_for_status()
+            final_api_result_str = final_response.json().get("data")[0]
+            final_ai_message = json.loads(final_api_result_str)
+            
+            reply_content = final_ai_message.get('content', "I've processed the information.")
+            current_conversation.append(final_ai_message)
+
+        except Exception as e:
+            logger.error(f"Error in Tool Execution or Chatbot API Call 2: {e}")
+            reply_content = "I had trouble using my tools to get that information."
+    else:
+        # If no tool was called, just use the AI's text response
+        reply_content = ai_response_message.get('content', "I'm not sure how to respond.")
+
+    # --- Final Reply to the User ---
+    # Handle the special case where the tool returns a list for the UI to make buttons
+    if isinstance(tool_output, list) and tool_name in ["list_my_reports", "create_fertilizer_plan"]:
+         reply = {"type": "options", "content": "Of course. Please select one of your saved reports:", "options": tool_output}
+    else:
+        reply = {"type": "text", "content": reply_content}
+    
+    return reply, current_conversation
     
 def create_fertilizer_plan(user_id, report_id: int = None):
     """
