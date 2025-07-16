@@ -1012,8 +1012,10 @@ def create_fertilizer_plan(user_id, report_id: int = None):
         plan = get_fertilizer_plan_for_crop(crop, soil_type, state, short_advice=True)
         
         if plan and plan.get('ai_application_advice'):
-            # Return the final, formatted string advice.
-            return plan['ai_application_advice']
+            advice_list = plan['ai_application_advice']
+            # The 'ai_application_advice' is a list of dictionaries. We format it here.
+            formatted_advice = "\n\n".join([f"**{item['title']}**\n{item['description']}" for item in advice_list])
+            return formatted_advice
         else:
             return f"Sorry, I could not generate a fertilizer plan for {crop} in {soil_type} for report #{report_id}."
 
