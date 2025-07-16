@@ -202,7 +202,9 @@ def get_fertilizer_plan(report_id):
         return jsonify({"success": False, "error": "Report not found or you do not have permission to view it."}), 404
         
     try:
-        report_data = json.loads(report_record['report_data'])
+        report_data = report_record['report_data']
+        if isinstance(report_data, str):
+            report_data = json.loads(report_data)
         lang = report_data.get('lang', 'en') 
         top_crop = report_data.get("recommendations", {}).get("recommended_crops", [None])[0]
         state = report_data.get("location", {}).get("state")
