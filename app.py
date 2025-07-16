@@ -23,12 +23,12 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(mes
 logger = logging.getLogger(__name__)
 
 with app.app_context():
-
     cache.clear()
     logger.info("Application cache cleared on startup.")
     
     database.init_connection_pool()
-    services.load_all_data()
+    # CORRECTED LINE:
+    services.load_datasets() # We only need to load the CSVs now
     services.init_cache(cache)
     database.create_tables()
 

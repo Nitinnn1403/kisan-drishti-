@@ -1,4 +1,4 @@
-# database.py - NEW VERSION FOR POSTGRESQL
+# database.py - FINAL, CORRECTED VERSION FOR POSTGRESQL
 
 import os
 import psycopg2
@@ -6,11 +6,11 @@ from psycopg2 import pool
 from psycopg2.extras import DictCursor
 import bcrypt
 import logging
-from config import MYSQL_HOST, MYSQL_USER, MYSQL_PASSWORD, MYSQL_DB
+import datetime
+import json
 
 DATABASE_URL = os.getenv('DATABASE_URL')
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 pg_pool = None
 
@@ -26,7 +26,9 @@ def init_connection_pool():
         logger.error(f"Error creating PostgreSQL pool: {e}")
 
 def get_db_connection():
-    if not pg_pool: return None
+    if not pg_pool:
+        logger.error("Database pool is not initialized.")
+        return None
     return pg_pool.getconn()
 
 def release_db_connection(conn):
@@ -37,6 +39,9 @@ def create_tables():
     conn = None
     try:
         conn = get_db_connection()
+        if not conn:
+            logger.error("Could not get DB connection to create tables.")
+            return
         with conn.cursor() as cursor:
             # PostgreSQL uses SERIAL for auto-incrementing IDs and JSONB for JSON data
             cursor.execute("""
@@ -47,7 +52,6 @@ def create_tables():
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
                 );
             """)
-            # Create 'field_reports' table
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS field_reports (
                     id SERIAL PRIMARY KEY,
@@ -67,10 +71,7 @@ def create_tables():
         if conn:
             release_db_connection(conn)
 
-# --- All functions below are updated for PostgreSQL ---
-
 def register_user(username, password):
-    """Registers a new user in the database."""
     conn = None
     try:
         conn = get_db_connection()
@@ -80,17 +81,14 @@ def register_user(username, password):
                 return {"success": False, "error": "Username already exists."}, 409
 
             hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-            # Use RETURNING id to get the new user's ID
             cursor.execute(
                 "INSERT INTO users (username, password_hash) VALUES (%s, %s) RETURNING id",
                 (username, hashed_password)
             )
             user_id = cursor.fetchone()['id']
         conn.commit()
-        user_id = cursor.lastrowid
-
         logger.info(f"User {username} registered successfully with ID: {user_id}.")
-        return {"success": True, "user_id": user_id, "username": username}, 201
+        return {"success": True, "message": "Registration successful!", "user_id": user_id, "username": username}, 201
     except Exception as e:
         logger.error(f"Error during registration: {e}")
         return {"success": False, "error": "Database error during registration."}, 500
@@ -99,7 +97,6 @@ def register_user(username, password):
             release_db_connection(conn)
 
 def login_user(username, password):
-    """Authenticates a user against the database."""
     conn = None
     try:
         conn = get_db_connection()
@@ -116,4 +113,155 @@ def login_user(username, password):
     finally:
         if conn:
             release_db_connection(conn)
-            
+
+def save_report_to_db(user_id, latitude, longitude, report_data_json):
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cursor:
+            sql = "INSERT INTO field_reports (user_id, latitude, longitude, report_data) VALUES (%s, %s, %s, %s)"
+            cursor.execute(sql, (user_id, latitude, longitude, report_data_json))
+        conn.commit()
+        logger.info(f"Report saved successfully for user {user_id}.")
+        return {"success": True, "message": "Report saved successfully!"}, 201
+    except Exception as e:
+        logger.error(f"Error saving report to PostgreSQL: {e}")
+        return {"success": False, "error": "Database error while saving report."}, 500
+    finally:
+        if conn:
+            release_db_connection(conn)
+
+def get_user_reports(user_id):
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=DictCursor) as cursor:
+            sql = "SELECT id, latitude, longitude, report_data, saved_at FROM field_reports WHERE user_id = %s ORDER BY saved_at DESC"
+            cursor.execute(sql, (user_id,))
+            reports = [dict(row) for row in cursor.fetchall()]
+        logger.info(f"Fetched {len(reports)} reports for user {user_id}.")
+        return {"success": True, "reports": reports}, 200
+    except Exception as e:
+        logger.error(f"Error fetching reports from PostgreSQL: {e}")
+        return {"success": False, "error": "Database error while fetching reports."}, 500
+    finally:
+        if conn:
+            release_db_connection(conn)
+
+def get_latest_user_report(user_id):
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=DictCursor) as cursor:
+            sql = "SELECT report_data, saved_at FROM field_reports WHERE user_id = %s ORDER BY saved_at DESC LIMIT 1"
+            cursor.execute(sql, (user_id,))
+            report = cursor.fetchone()
+        return report
+    except Exception as e:
+        logger.error(f"Error fetching latest report: {e}")
+        return None
+    finally:
+        if conn:
+            release_db_connection(conn)
+
+def delete_report_from_db(report_id, user_id):
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cursor:
+            sql = "DELETE FROM field_reports WHERE id = %s AND user_id = %s"
+            cursor.execute(sql, (report_id, user_id))
+            rows_affected = cursor.rowcount
+        conn.commit()
+        if rows_affected > 0:
+            logger.info(f"Report ID {report_id} deleted by user {user_id}.")
+            return {"success": True, "message": "Report deleted successfully!"}, 200
+        else:
+            logger.warning(f"Failed delete attempt for report {report_id} by user {user_id}.")
+            return {"success": False, "error": "Report not found or permission denied."}, 404
+    except Exception as e:
+        logger.error(f"Error deleting report from PostgreSQL: {e}")
+        return {"success": False, "error": "Database error while deleting report."}, 500
+    finally:
+        if conn:
+            release_db_connection(conn)
+
+def get_report_by_id(user_id, report_id):
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=DictCursor) as cursor:
+            sql = "SELECT id, report_data, saved_at FROM field_reports WHERE user_id = %s AND id = %s"
+            cursor.execute(sql, (user_id, report_id))
+            report = cursor.fetchone()
+        return report
+    except Exception as e:
+        logger.error(f"Error fetching single report by ID: {e}")
+        return None
+    finally:
+        if conn:
+            release_db_connection(conn)
+
+def update_user_password(user_id, current_password, new_password):
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=DictCursor) as cursor:
+            sql_fetch = "SELECT password_hash FROM users WHERE id = %s"
+            cursor.execute(sql_fetch, (user_id,))
+            user = cursor.fetchone()
+
+            if not user:
+                return {"success": False, "error": "User not found."}, 404
+            if not bcrypt.checkpw(current_password.encode('utf-8'), user['password_hash'].encode('utf-8')):
+                return {"success": False, "error": "Incorrect current password."}, 403
+
+            new_hashed_password = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            sql_update = "UPDATE users SET password_hash = %s WHERE id = %s"
+            cursor.execute(sql_update, (new_hashed_password, user_id))
+        conn.commit()
+        logger.info(f"Password updated successfully for user ID: {user_id}.")
+        return {"success": True, "message": "Password updated successfully!"}, 200
+    except Exception as e:
+        logger.error(f"Error updating password in PostgreSQL: {e}")
+        return {"success": False, "error": "Database error while updating password."}, 500
+    finally:
+        if conn:
+            release_db_connection(conn)
+
+def delete_user_account(user_id):
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cursor:
+            sql = "DELETE FROM users WHERE id = %s"
+            cursor.execute(sql, (user_id,))
+            rows_affected = cursor.rowcount
+        conn.commit()
+        if rows_affected > 0:
+            logger.info(f"User account with ID {user_id} has been permanently deleted.")
+            return {"success": True, "message": "Account deleted successfully."}, 200
+        else:
+            logger.warning(f"Attempted to delete a non-existent user with ID {user_id}.")
+            return {"success": False, "error": "User not found."}, 404
+    except Exception as e:
+        logger.error(f"Error deleting user account from PostgreSQL: {e}")
+        return {"success": False, "error": "Database error while deleting account."}, 500
+    finally:
+        if conn:
+            release_db_connection(conn)
+
+def get_username_by_id(user_id):
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT username FROM users WHERE id = %s", (user_id,))
+            result = cursor.fetchone()
+        return result[0] if result else "User"
+    except Exception as e:
+        logger.error(f"Error fetching username by ID: {e}")
+        return "User"
+    finally:
+        if conn:
+            release_db_connection(conn)
