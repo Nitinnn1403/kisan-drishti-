@@ -366,14 +366,15 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.reports && data.reports.length > 0) {
                 select.innerHTML = '<option value="">-- Select a report --</option>';
                 data.reports.forEach(report => {
-                    // --- THIS IS THE CORRECTED FIX ---
                     let reportData = report.report_data;
                     if (typeof reportData === 'string') {
-                        // If the data is a string, parse it.
-                        reportData = JSON.parse(reportData);
+                        try {
+                            reportData = JSON.parse(reportData);
+                        } catch (e) {
+                            console.error("Failed to parse report_data:", e);
+                            return; // Skip malformed report
+                        }
                     }
-                    // If it's already an object, do nothing.
-                    
                     const reportDate = new Date(reportData.generated_at).toLocaleDateString();
                     const topCrop = reportData.recommendations?.recommended_crops?.[0] || 'N/A';
                     const option = new Option(`Report from ${reportDate} (Crop: ${topCrop})`, report.id);

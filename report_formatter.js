@@ -73,6 +73,10 @@ export function displayCropAnalysis(resultData) {
     const formatAiAdvice = (advice) => {
         // Handle cases where advice is missing or not an array
         if (!Array.isArray(advice) || advice.length === 0) {
+            // If advice is an object (likely an error message), display it
+            if (advice && typeof advice === 'object' && !Array.isArray(advice)) {
+                return `<p>${advice.title || 'Error'}: ${advice.description || 'No detailed advice available.'}</p>`;
+            }
             return "<p>No detailed advice available.</p>";
         }
 
@@ -88,7 +92,7 @@ export function displayCropAnalysis(resultData) {
         return advice.map(item => {
             const title = item.title || 'Advice';
             const description = item.description || 'No details available.';
-            const icon = icons[title] || icons['Description']; // Fallback icon
+            const icon = icons[title] || icons['Description'];
 
             return `
                 <div class="mb-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
@@ -101,7 +105,7 @@ export function displayCropAnalysis(resultData) {
             `;
         }).join('');
     };
-
+    
     const resultHtml = `
         <div class="text-left p-2 md:p-4 w-full">
             <div class="text-center mb-6">

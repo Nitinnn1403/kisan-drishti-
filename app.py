@@ -334,30 +334,20 @@ def get_admin_stats():
         return jsonify({"error": "Database connection failed"}), 500
     try:
         cursor = conn.cursor()
-
         cursor.execute("SELECT COUNT(id) FROM users;")
         total_users = cursor.fetchone()[0]
-
         cursor.execute("SELECT COUNT(id) FROM field_reports;")
         total_reports = cursor.fetchone()[0]
-
-        cursor.execute("SELECT COUNT(id) FROM field_reports WHERE saved_at >= NOW() - INTERVAL 1 DAY;")
+        # Use PostgreSQL's interval syntax
+        cursor.execute("SELECT COUNT(id) FROM field_reports WHERE saved_at >= NOW() - INTERVAL '1 day';")
         reports_last_24h = cursor.fetchone()[0]
-
-        return jsonify({
-            "success": True,
-            "stats": {
-                "total_users": total_users,
-                "total_reports": total_reports,
-                "reports_last_24h": reports_last_24h
-            }
-        })
+        return jsonify({"success": True, "stats": {"total_users": total_users, "total_reports": total_reports, "reports_last_24h": reports_last_24h}})
     except Exception as e:
         logger.error(f"Error fetching admin stats: {e}", exc_info=True)
         return jsonify({"success": False, "error": "Failed to fetch stats"}), 500
     finally:
-        if conn and conn.is_connected():
-            conn.close()
+        if conn:
+            database.release_db_connection(conn)
 
 @app.route('/api/admin/reports')
 @admin_required
@@ -367,32 +357,30 @@ def get_admin_reports():
     if not conn:
         return jsonify({"error": "Database connection failed"}), 500
     try:
-        cursor = conn.cursor(dictionary=True)
-        # This query extracts the top recommended crop directly from the JSON data
+        # Use DictCursor for easy dictionary access
+        cursor = conn.cursor(cursor_factory=database.DictCursor)
+        # PostgreSQL uses the ->> operator to extract a JSON field as text
         query = """
         SELECT
-            id,
-            user_id,
-            saved_at,
-            JSON_UNQUOTE(JSON_EXTRACT(report_data, '$.location.district')) AS district,
-            JSON_UNQUOTE(JSON_EXTRACT(report_data, '$.location.state')) AS state,
-            JSON_UNQUOTE(JSON_EXTRACT(report_data, '$.recommendations.recommended_crops[0]')) AS top_crop
-        FROM field_reports
-        ORDER BY saved_at DESC
-        LIMIT 20;
+            id, user_id, saved_at,
+            report_data->>'district' AS district,
+            report_data->>'state' AS state,
+            report_data->'recommendations'->'recommended_crops'->>0 AS top_crop
+        FROM field_reports ORDER BY saved_at DESC LIMIT 20;
         """
         cursor.execute(query)
-        reports = cursor.fetchall()
-        # Convert datetime objects to a readable string format for JSON
+        # Convert the list of DictRow objects to a list of standard dicts
+        reports = [dict(row) for row in cursor.fetchall()]
         for report in reports:
-            report['saved_at'] = report['saved_at'].strftime('%Y-%m-%d %H:%M:%S')
+            if isinstance(report['saved_at'], datetime.datetime):
+                report['saved_at'] = report['saved_at'].strftime('%Y-%m-%d %H:%M:%S')
         return jsonify({"success": True, "reports": reports})
     except Exception as e:
         logger.error(f"Error fetching admin reports: {e}", exc_info=True)
         return jsonify({"success": False, "error": "Failed to fetch reports"}), 500
     finally:
-        if conn and conn.is_connected():
-            conn.close()
+        if conn:
+            database.release_db_connection(conn)
 
 @app.route('/api/admin/analytics/registrations')
 @admin_required
@@ -402,26 +390,22 @@ def get_registration_analytics():
     if not conn:
         return jsonify({"error": "DB connection failed"}), 500
     try:
-        cursor = conn.cursor(dictionary=True)
-        # Query for MySQL to group by day
+        cursor = conn.cursor(cursor_factory=database.DictCursor)
+        # Use PostgreSQL's CURRENT_DATE and interval syntax
         query = """
         SELECT DATE(created_at) AS registration_date, COUNT(id) AS count
         FROM users
-        WHERE created_at >= CURDATE() - INTERVAL 30 DAY
-        GROUP BY DATE(created_at)
-        ORDER BY registration_date;
+        WHERE created_at >= CURRENT_DATE - INTERVAL '30 days'
+        GROUP BY DATE(created_at) ORDER BY registration_date;
         """
         cursor.execute(query)
-        data = cursor.fetchall()
-        
-        # Format for Chart.js
+        data = [dict(row) for row in cursor.fetchall()]
         labels = [row['registration_date'].strftime('%b %d') for row in data]
         counts = [row['count'] for row in data]
-
         return jsonify({"success": True, "labels": labels, "data": counts})
     finally:
-        if conn and conn.is_connected():
-            conn.close()
+        if conn:
+            database.release_db_connection(conn)
 
 @app.route('/api/admin/analytics/top_crops')
 @admin_required
@@ -432,34 +416,21 @@ def get_top_crops_analytics():
         return jsonify({"error": "DB connection failed"}), 500
     try:
         cursor = conn.cursor()
-        # Fetch the JSON array of recommended crops from all reports
-        cursor.execute("SELECT JSON_EXTRACT(report_data, '$.recommendations.recommended_crops') FROM field_reports;")
-        all_recs_json = cursor.fetchall()
+        # Fetch the JSONB array; psycopg2 will automatically convert it to a Python list
+        cursor.execute("SELECT report_data->'recommendations'->'recommended_crops' FROM field_reports;")
+        all_recs_tuples = cursor.fetchall()
         
         crop_counts = Counter()
-        for rec_json_tuple in all_recs_json:
-            rec_json = rec_json_tuple[0]
-            if rec_json:
-                try:
-                    # The data is a JSON string of a list, e.g., '["Rice", "Wheat"]'
-                    crops = json.loads(rec_json)
-                    if isinstance(crops, list):
-                        crop_counts.update(crops)
-                except (json.JSONDecodeError, TypeError):
-                    # Skip malformed entries
-                    continue
+        for rec_tuple in all_recs_tuples:
+            crops_list = rec_tuple[0] # The list is the first element of the tuple
+            if isinstance(crops_list, list):
+                crop_counts.update(crops_list)
         
-        # Get the 7 most common crops
         top_7_crops = crop_counts.most_common(7)
-        
-        return jsonify({
-            "success": True,
-            "labels": [crop[0] for crop in top_7_crops],
-            "data": [crop[1] for crop in top_7_crops]
-        })
+        return jsonify({"success": True, "labels": [crop[0] for crop in top_7_crops], "data": [crop[1] for crop in top_7_crops]})
     finally:
-        if conn and conn.is_connected():
-            conn.close()
+        if conn:
+            database.release_db_connection(conn)
 
 @app.route('/admin')
 @admin_required
