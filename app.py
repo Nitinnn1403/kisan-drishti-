@@ -32,8 +32,6 @@ with app.app_context():
     services.init_cache(cache)
     database.create_tables()
 
-    services.start_background_cache_updater()
-
 def login_required(view):
     @functools.wraps(view)
     def wrapped_view(**kwargs):
@@ -472,6 +470,8 @@ def admin_dashboard():
 def admin_logout():
     session.pop('admin_logged_in', None)
     return redirect('/admin/login')
+
+services.start_background_cache_updater()
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

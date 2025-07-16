@@ -19,20 +19,23 @@ import database
 from config import (
     DATA_GOV_IN_API_KEY, OPENWEATHERMAP_API_KEY, 
     GEMINI_API_KEY, GEMINI_API_URL,
-    PLANT_HEALTH_MODEL_PATH, PLANT_HEALTH_CLASS_LABELS,
-    SOIL_TYPE_MODEL_PATH, SOIL_TYPE_CLASS_LABELS,
     RECOMMEND_DATA_PATH, MACRO_NUTRIENT_DATA_PATH
 )
 from utils import get_indian_state_from_gps
-from tools import get_tools_schema
 import base64
 import os
-from tool_registry import AVAILABLE_TOOLS
+from tool_registry import TOOL_FUNCTIONS
 from tools import get_tools_schema
 
 CROP_API_URL = os.getenv('CROP_API_URL')
 SOIL_API_URL = os.getenv('SOIL_API_URL')
 CHATBOT_API_URL = os.getenv('CHATBOT_API_URL')
+
+AVAILABLE_TOOLS = {
+    func_name: globals()[func_name]
+    for func_name in TOOL_FUNCTIONS
+    if func_name in globals()
+}
 
 SOIL_TRANSLATIONS_HI = {
     "alluvial soil": "जलोढ़ मिट्टी",
@@ -842,7 +845,8 @@ def get_gemini_report_advice(prompt):
         return [{"title": "Error", "description": "Sorry, an error occurred while contacting the AI for advice."}]
 
 def get_drishti_response(user_message, user_id, conversation_history=[]):
-
+    from .tools import get_tools_schema
+    
     if not GEMINI_API_KEY or not GEMINI_API_URL:
         return {"type": "text", "content": "Chatbot AI service is not configured."}, conversation_history
 
