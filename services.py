@@ -27,6 +27,8 @@ from utils import get_indian_state_from_gps
 from tools import get_tools_schema
 import base64
 import os
+from tool_registry import AVAILABLE_TOOLS
+from tools import get_tools_schema
 
 CROP_API_URL = os.getenv('CROP_API_URL')
 SOIL_API_URL = os.getenv('SOIL_API_URL')
@@ -840,8 +842,6 @@ def get_gemini_report_advice(prompt):
         return [{"title": "Error", "description": "Sorry, an error occurred while contacting the AI for advice."}]
 
 def get_drishti_response(user_message, user_id, conversation_history=[]):
-    from tool_registry import AVAILABLE_TOOLS
-    from tools import get_tools_schema
 
     if not GEMINI_API_KEY or not GEMINI_API_URL:
         return {"type": "text", "content": "Chatbot AI service is not configured."}, conversation_history
@@ -979,6 +979,7 @@ def create_fertilizer_plan(user_id, report_id: int = None):
         else:
             return f"Sorry, I could not generate a fertilizer plan for {crop} in {soil_type} for report #{report_id}."
 
+@cache.memoize(timeout=600)
 def get_dashboard_data(user_id, lang='en'): # <-- Add lang
     """
     This is the single source of truth for all dashboard data.
