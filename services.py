@@ -230,17 +230,24 @@ def list_my_reports(user_id):
         return "You have no saved reports. You can create one from the 'Analyze Field' page."
     
     formatted_reports = []
-
     for report in reports_data["reports"][:5]:
         try:
-            report_data = json.loads(report['report_data'])
-            report_date = report['saved_at'].strftime('%b %d, %Y')
+            report_data = report.get('report_data', {})
+            if isinstance(report_data, str):
+                report_data = json.loads(report_data)
+
+            saved_at_date = report.get('saved_at')
+            if saved_at_date:
+                report_date = saved_at_date.strftime('%b %d, %Y')
+            else:
+                report_date = datetime.fromisoformat(report_data.get('generated_at')).strftime('%b %d, %Y')
 
             formatted_reports.append({
                 "report_id": report['id'], 
                 "date": report_date,
             })
-        except Exception:
+        except Exception as e:
+            logger.error(f"Error parsing a report for the chatbot: {e}")
             continue
             
     if not formatted_reports:
@@ -846,6 +853,26 @@ def get_drishti_response(user_message, user_id, conversation_history=[]):
         if func_name in globals()
     }
 
+    if user_message.startswith("CMD::"):
+        parts = user_message.split("::")
+        command_type = parts[1]
+        report_id = int(parts[2])
+
+        if command_type == "CREATE_FERTILIZER_PLAN":
+            tool_output = create_fertilizer_plan(user_id=user_id, report_id=report_id)
+            reply_content = tool_output 
+        
+        elif command_type == "GET_REPORT_DETAILS":
+            tool_output = get_specific_report(user_id=user_id, report_id=report_id)
+            reply_content = tool_output
+        
+        else:
+            reply_content = "Sorry, I received an unknown command."
+
+        final_reply = {"type": "text", "content": reply_content}
+        updated_history = conversation_history + [{"role": "user", "content": user_message}, {"role": "assistant", "content": reply_content}]
+        return final_reply, updated_history
+
     if not GEMINI_API_KEY or not GEMINI_API_URL:
         return {"type": "text", "content": "Chatbot AI service is not configured."}, conversation_history
 
@@ -908,9 +935,16 @@ def get_drishti_response(user_message, user_id, conversation_history=[]):
                 if tool_name in ["list_my_reports", "create_fertilizer_plan"] and isinstance(tool_output, list):
                     options = []
                     for report in tool_output:
-                        label = f"Report #{report.get('report_id')} from {report.get('date')}"
-                        payload_msg = f"Create a fertilizer plan for report {report.get('report_id')}" if tool_name == 'create_fertilizer_plan' else f"Show me details for report {report.get('report_id')}"
-                        options.append({"label": label, "payload": {"message": payload_msg}})
+                        report_id = report.get('report_id')
+                        label = f"Report #{report_id} from {report.get('date')}"
+                        # Create a precise, machine-readable command instead of a sentence
+                        if tool_name == 'create_fertilizer_plan':
+                            command = f"CMD::CREATE_FERTILIZER_PLAN::{report_id}"
+                        else: # This handles 'list_my_reports'
+                            command = f"CMD::GET_REPORT_DETAILS::{report_id}"
+                        
+                        options.append({"label": label, "payload": {"message": command}})
+                        
                     reply = {"type": "options", "content": "Of course. Please select one of your saved reports:", "options": options}
                     return reply, conversation_history
                 
