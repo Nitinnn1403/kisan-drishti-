@@ -189,35 +189,37 @@ def find_state_from_district(district: str) -> str:
         return None
 
 def analyze_crop_health(image_data):
+    # We now use CROP_API_URL, which will point to our unified endpoint
     if not CROP_API_URL:
-        return {"error": "Crop analysis service is not configured."}
+        return {"error": "Vision service URL is not configured."}
     
-    # Encode image to send over the internet
     b64_image = base64.b64encode(image_data).decode('utf-8')
-    payload = {"data": [f"data:image/jpeg;base64,{b64_image}"]}
+    # The payload now sends the image AND the mode
+    payload = {"data": [f"data:image/jpeg;base64,{b64_image}", "Crop"]}
 
     try:
         response = requests.post(CROP_API_URL, json=payload, timeout=60)
         response.raise_for_status()
-        # The result from Gradio is nested under a "data" key
         return response.json().get("data", [{}])[0]
     except Exception as e:
-        logger.error(f"Error calling Crop API: {e}")
+        logger.error(f"Error calling Vision API for Crop: {e}")
         return {"error": "The AI vision service is currently unavailable."}
 
 def analyze_soil_type(image_data):
+    # We now use SOIL_API_URL, which will ALSO point to our unified endpoint
     if not SOIL_API_URL:
-        return {"error": "Soil analysis service is not configured."}
+        return {"error": "Vision service URL is not configured."}
 
     b64_image = base64.b64encode(image_data).decode('utf-8')
-    payload = {"data": [f"data:image/jpeg;base64,{b64_image}"]}
-    
+    # The payload now sends the image AND the mode
+    payload = {"data": [f"data:image/jpeg;base64,{b64_image}", "Soil"]}
+
     try:
         response = requests.post(SOIL_API_URL, json=payload, timeout=60)
         response.raise_for_status()
         return response.json().get("data", [{}])[0]
     except Exception as e:
-        logger.error(f"Error calling Soil API: {e}")
+        logger.error(f"Error calling Vision API for Soil: {e}")
         return {"error": "The AI vision service is currently unavailable."}
 
 def list_my_reports(user_id):
