@@ -261,7 +261,10 @@ def get_specific_report(user_id, report_id: int):
         return f"Error: I could not find a report with the ID {report_id}."
         
     try:
-        report_data = json.loads(report_record['report_data']) if isinstance(report_record['report_data'], str) else report_record['report_data']
+        report_data = report_record['report_data']
+        if isinstance(report_data, str):
+            report_data = json.loads(report_data)
+            
         loc = report_data.get('location', {})
         soil = report_data.get('soil_analysis', {})
         recs = report_data.get('recommendations', {})
@@ -915,7 +918,9 @@ def create_fertilizer_plan(user_id, report_id: int = None):
         report_record = database.get_report_by_id(user_id, report_id)
         if not report_record: return f"Sorry, I could not find report #{report_id}."
         
-        data = json.loads(report_record['report_data'])
+        data = report_record['report_data']
+        if isinstance(data, str):
+            data = json.loads(data)
         crop = data.get('recommendations', {}).get('recommended_crops', [None])[0]
         state = data.get('location', {}).get('state')
         soil_type = data.get('soil_analysis', {}).get('prediction')
@@ -942,7 +947,9 @@ def get_dashboard_data(user_id, lang='en'): # <-- Add lang
         return {"success": True, "has_data": False}
     
     try:
-        report_data = json.loads(report_record['report_data'])
+        report_data = report_record['report_data']
+        if isinstance(report_data, str):
+            report_data = json.loads(report_data)
         location = report_data.get('location', {})
         lat, lon = location.get('latitude'), location.get('longitude')
         state, district = location.get('state'), location.get('district')
