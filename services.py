@@ -840,109 +840,119 @@ def get_gemini_report_advice(prompt):
         return [{"title": "Error", "description": "Sorry, an error occurred while contacting the AI for advice."}]
 
 def get_drishti_response(user_message, user_id, conversation_history=[]):
-    if user_message == "I'd like to check a mandi price.":
-        reply_content = "Of course! To check the mandi price, please tell me the crop and the district, like: **Wheat in Pune**"
-        new_history = conversation_history + [
-            {"role": "user", "content": user_message},
-            {"role": "assistant", "content": reply_content}
-        ]
-        return {"type": "text", "content": reply_content}, new_history
-    
+    from .tool_registry import AVAILABLE_TOOLS # Use relative import
+    from .tools import get_tools_schema # Use relative import
+
+    # This is the URL from your config that points to the HF service
     if not CHATBOT_API_URL:
         return {"type": "text", "content": "Chatbot service is not configured."}, conversation_history
+
+    headers = {"Content-Type": "application/json"}
+
+    # --- Step 1: Define the AI's instructions (System Prompt) ---
+    system_prompt = """You are 'Drishti', a friendly and expert AI agricultural assistant. Your goal is to help Indian farmers.
+- First, understand the user's request.
+- Second, check if one of your available tools can help.
+- If a tool is a good match, you MUST respond ONLY with the tool code in the specified format.
+- If the user is just making small talk (e.g., "hello"), just respond with a friendly message.
+- If you need more information to use a tool, ask a clarifying question.
+- Your tools are:
+{tools_json}
+
+- When you use a tool, your response MUST look EXACTLY like this example, with no other text:
+<tool_code>
+{{"name": "get_mandi_price", "arguments": {{"district": "Pune", "crop": "wheat"}}}}
+</tool_code>
+""".format(tools_json=json.dumps(get_tools_schema(), indent=2))
+
+    # --- Step 2: The Manager (this code) calls the AI Brain for advice ---
+    messages = [{"role": "system", "content": system_prompt}] + conversation_history + [{"role": "user", "content": user_message}]
     
-    from tool_registry import AVAILABLE_TOOLS
-    from tools import get_tools_schema
+    # We now need to create the raw prompt string for the HF service
+    # NOTE: We need a dummy tokenizer here just for the template. This avoids installing all of transformers.
+    # A simple string replacement is more efficient.
+    prompt = ""
+    for msg in messages:
+        prompt += f"<|im_start|>{msg['role']}\n{msg['content']}<|im_end|>\n"
+    prompt += "<|im_start|>assistant\n"
 
-    tool_output = None
-    system_prompt = """
-    You are 'Drishti', a friendly and helpful AI farming assistant for Indian farmers. Your personality is conversational and supportive.
-
-    **Your Capabilities:**
-    1.  **General Conversation:** For simple greetings (like "hello", "hi", "thanks"), please respond with a short, friendly message.
-    2.  **Tool Use:** To answer specific questions about market prices or fertilizer plans, you must use your tools.
-
-    **How to use tools:**
-    - When a user asks a question that requires a tool, your **ENTIRE** response must be the tool code and nothing else.
-    - **Example Tool Call:**
-    <tool_code>
-    {"name": "get_mandi_price", "arguments": {"district": "Pune", "crop": "wheat"}}
-    </tool_code>
-
-    - If a user's request is a clear match for a tool, use it.
-    - If a user's request is vague (e.g., "what's the price?"), ask for the missing information (e.g., "Of course! For which crop and in which district?").
-    """
-
-    # Add the new user message to the conversation
-    current_conversation = conversation_history + [{"role": "user", "content": user_message}]
-    
-    # --- Call 1: Get the AI's decision (talk or use a tool) ---
-    payload = {"data": [system_prompt, json.dumps(current_conversation), json.dumps(get_tools_schema())]}
-    
     try:
-        response = requests.post(CHATBOT_API_URL, json=payload, timeout=90)
+        # The payload is now a simple list with one string
+        payload = {"data": [prompt]}
+        response = requests.post(CHATBOT_API_URL, headers=headers, json=payload, timeout=90)
         response.raise_for_status()
-        api_result_str = response.json().get("data")[0]
-        ai_response_message = json.loads(api_result_str)
+        ai_raw_response = response.json()['choices'][0]['message'] if 'choices' in response.json() else response.json().get("data")[0]
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Cannot connect to Chatbot API: {e}")
+        return {"type": "text", "content": "Sorry, I can't connect to my AI brain."}, messages
+    
+    # Append the AI's thought process (the raw response) to the history
+    messages.append({"role": "assistant", "content": ai_raw_response})
+
+    # --- Step 3: The Manager parses the AI's advice and acts ---
+    tool_match = re.search(r'<tool_code>(.*?)</tool_code>', ai_raw_response)
+    
+    if not tool_match:
+        # The AI did not call a tool, so its response is the final answer
+        return {"type": "text", "content": ai_raw_response}, messages
+
+    # The AI wants to use a tool
+    try:
+        tool_data_str = tool_match.group(1)
+        tool_data = json.loads(tool_data_str)
+        tool_name = tool_data.get("name")
+        tool_args = tool_data.get("arguments", {})
+
+        if tool_name not in AVAILABLE_TOOLS:
+            return {"type": "text", "content": "Sorry, I tried to use a tool that doesn't exist."}, messages
+
+        function_to_call = AVAILABLE_TOOLS[tool_name]
+        if 'user_id' in inspect.signature(function_to_call).parameters:
+            tool_args['user_id'] = user_id
         
-        # Append the AI's decision to our history
-        current_conversation.append(ai_response_message)
+        tool_output_raw = function_to_call(**tool_args)
+
+        # This is your existing, working logic for creating UI buttons
+        if tool_name in ["list_my_reports", "create_fertilizer_plan"] and isinstance(tool_output_raw, list):
+            options = []
+            for report in tool_output_raw:
+                label = f"Report #{report.get('report_id')} from {report.get('date')}"
+                payload_msg = f"Create a fertilizer plan for report {report.get('report_id')}" if tool_name == 'create_fertilizer_plan' else f"Show me details for report {report.get('report_id')}"
+                options.append({"label": label, "payload": {"message": payload_msg}})
+            
+            reply = {
+                "type": "options",
+                "content": "Of course. Please select one of your saved reports:",
+                "options": options
+            }
+            messages.append({"role": "tool", "name": tool_name, "content": f"Displayed {len(options)} reports."})
+            return reply, messages
+
+        # This block now makes the SECOND call to the AI to summarize the tool result
+        messages.append({"role": "tool", "name": tool_name, "content": json.dumps(tool_output_raw)})
+        
+        # Re-build the prompt for the second call
+        prompt_2 = ""
+        for msg in messages:
+            role = msg['role']
+            content = msg.get('content', '')
+            if not content: # Handle potential empty content from assistant tool calls
+                 if msg.get('tool_calls'): content = json.dumps(msg.get('tool_calls'))
+                 else: continue
+            prompt_2 += f"<|im_start|>{role}\n{content}<|im_end|>\n"
+        prompt_2 += "<|im_start|>assistant\n"
+        
+        final_payload = {"data": [prompt_2]}
+        final_response = requests.post(CHATBOT_API_URL, headers=headers, json=final_payload, timeout=90)
+        final_response.raise_for_status()
+        final_ai_message = final_response.json().get("data")[0]
+
+        messages.append({"role": "assistant", "content": final_ai_message})
+        return {"type": "text", "content": final_ai_message}, messages
 
     except Exception as e:
-        logger.error(f"Error in Chatbot API Call 1: {e}")
-        return {"type": "text", "content": "The AI chatbot is having trouble thinking right now."}, current_conversation
-
-    # --- Check if the AI wants to use a tool ---
-    if ai_response_message.get("tool_calls"):
-        tool_call = ai_response_message["tool_calls"][0]
-        tool_name = tool_call["function"]["name"]
-        
-        if tool_name not in AVAILABLE_TOOLS:
-            return {"type": "text", "content": f"Sorry, I don't know how to use the tool '{tool_name}'."}, current_conversation
-        
-        try:
-            # --- Execute the Tool Locally ---
-            function_to_call = AVAILABLE_TOOLS[tool_name]
-            tool_args = json.loads(tool_call["function"]["arguments"])
-            
-            # Pass user_id if the tool needs it
-            if 'user_id' in inspect.signature(function_to_call).parameters:
-                tool_args['user_id'] = user_id
-            
-            tool_output = function_to_call(**tool_args)
-
-            # Append the tool's result to the conversation
-            current_conversation.append({
-                "role": "tool",
-                "content": json.dumps(tool_output),
-                "tool_call_id": tool_call['id']
-            })
-            
-            # --- Call 2: Send the tool result back to the AI for a final answer ---
-            final_payload = {"data": [system_prompt, json.dumps(current_conversation), json.dumps(get_tools_schema())]}
-            final_response = requests.post(CHATBOT_API_URL, json=final_payload, timeout=90)
-            final_response.raise_for_status()
-            final_api_result_str = final_response.json().get("data")[0]
-            final_ai_message = json.loads(final_api_result_str)
-            
-            reply_content = final_ai_message.get('content', "I've processed the information.")
-            current_conversation.append(final_ai_message)
-
-        except Exception as e:
-            logger.error(f"Error in Tool Execution or Chatbot API Call 2: {e}")
-            reply_content = "I had trouble using my tools to get that information."
-    else:
-        # If no tool was called, just use the AI's text response
-        reply_content = ai_response_message.get('content', "I'm not sure how to respond.")
-
-    # --- Final Reply to the User ---
-    # Handle the special case where the tool returns a list for the UI to make buttons
-    if isinstance(tool_output, list) and tool_name in ["list_my_reports", "create_fertilizer_plan"]:
-         reply = {"type": "options", "content": "Of course. Please select one of your saved reports:", "options": tool_output}
-    else:
-        reply = {"type": "text", "content": reply_content}
-    
-    return reply, current_conversation
+        logger.error(f"FATAL error in tool execution block: {e}", exc_info=True)
+        return {"type": "text", "content": "A critical error occurred while handling your request."}, messages
     
 def create_fertilizer_plan(user_id, report_id: int = None):
     """
