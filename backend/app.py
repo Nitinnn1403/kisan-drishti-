@@ -54,18 +54,6 @@ def login_required_page(f):
         return f(*args, **kwargs)
     return decorated_function
 
-@app.route('/')
-def landing():
-    return render_template('index.html')
-
-@app.route('/app')
-def app_page():
-    return render_template('app.html')
-
-@app.route('/<path:filename>')
-def serve_static(filename):
-    return send_from_directory('.', filename)
-
 # --- Authentication Routes (No Changes) ---
 @app.route('/api/login', methods=['POST'])
 def login():
@@ -321,18 +309,6 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# --- ADMIN ROUTES ---
-@app.route('/admin/login', methods=['GET', 'POST'])
-def admin_login():
-    if request.method == 'POST':
-        password = request.form.get('password')
-        if password == ADMIN_PASSWORD:
-            session['admin_logged_in'] = True
-            return redirect('/admin') # This will now work
-        else:
-            return render_template('admin_login.html', error="Invalid password")
-    return render_template('admin_login.html')
-
 @app.route('/api/admin/stats')
 @admin_required
 def get_admin_stats():
@@ -439,16 +415,6 @@ def get_top_crops_analytics():
     finally:
         if conn:
             database.release_db_connection(conn)
-
-@app.route('/admin')
-@admin_required
-def admin_dashboard():
-    return render_template('admin_dashboard.html', title="Admin Dashboard")
-
-@app.route('/admin/logout')
-def admin_logout():
-    session.pop('admin_logged_in', None)
-    return redirect('/admin/login')
 
 services.start_background_cache_updater()
 
