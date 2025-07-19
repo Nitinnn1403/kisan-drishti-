@@ -24,7 +24,7 @@ allowed_origins = [
     "https://kisan-drishti.vercel.app"  # Your production frontend on Vercel
 ]
 
-CORS(app, resources={r"/api/*": {"origins": allowed_origins}}, supports_credentials=True)
+CORS(app, origins=allowed_origins, supports_credentials=True)
 app.secret_key = FLASK_SECRET_KEY
 
 config = {"CACHE_TYPE": "SimpleCache", "CACHE_DEFAULT_TIMEOUT": 3600}
