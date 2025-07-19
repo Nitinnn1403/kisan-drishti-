@@ -13,7 +13,7 @@ from config import FLASK_SECRET_KEY
 from utils import get_indian_state_from_gps, get_district_from_gps
 from flask_cors import CORS
 
-app = Flask(__name__, template_folder='.')
+app = Flask(__name__)
 
 allowed_origins = [
     "http://127.0.0.1:5500",      # For local development
