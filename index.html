@@ -270,13 +270,20 @@
                 <div id="registerFormContainer" class="auth-form">
                     <h2 class="text-2xl font-bold text-gray-700 mb-6">Register</h2>
                     <form id="registerForm" class="space-y-4" novalidate>
-                        <!-- Add Username and Contact fields -->
+                        <!-- All the required input fields -->
                         <div><input type="text" id="registerUsername" placeholder="Choose a Username" class="form-input text-center"></div>
                         <div><input type="text" id="registerContact" placeholder="Contact Number (Optional)" class="form-input text-center"></div>
                         <div><input type="email" id="registerEmail" placeholder="Your Email Address" class="form-input text-center"></div>
                         <div><input type="password" id="registerPassword" placeholder="Choose a Password" class="form-input text-center"></div>
+                        
+                        <!-- The missing "Confirm Password" field -->
                         <div><input type="password" id="registerConfirmPassword" placeholder="Confirm Password" class="form-input text-center"></div>
-                        <button type="submit" class="btn-primary w-full !py-3"><span>Register</span><span class="loader" style="display:none;"></span></button>
+                        
+                        <!-- The missing "Register" button -->
+                        <button type="submit" class="btn-primary w-full !py-3">
+                            <span>Register</span>
+                            <span class="loader" style="display:none;"></span>
+                        </button>
                     </form>
                 </div>
             </div>
@@ -673,18 +680,18 @@
         async function handleLogin(event) {
             event.preventDefault();
             const form = event.target;
+            // CORRECTED: Get value from #loginEmail instead of #loginUsername
             const email = form.querySelector('#loginEmail').value;
             const password = form.querySelector('#loginPassword').value;
 
-            if (!username.trim() || !password.trim()) {
+            if (!email.trim() || !password.trim()) {
                 showMessage('Please fill out all fields.', 'warning');
-                return; // Exit if validation fails
+                return;
             }
-
-            setButtonLoading(form.querySelector('button'), true); // <-- Now it's in the right place
-
+            setButtonLoading(form.querySelector('button'), true);
             try {
-                const data = await API.loginUser(username, password);
+                // The API client now correctly sends 'email'
+                const data = await API.loginUser(email, password);
                 window.location.href = '/app';
             } catch (error) {
                 showMessage(error.message, 'error');
@@ -696,14 +703,13 @@
         async function handleRegister(event) {
             event.preventDefault();
             const form = event.target;
-            // Get values from all the new fields
+            // CORRECTED: Get values from all the final, correct fields
             const username = form.querySelector('#registerUsername').value;
             const contact = form.querySelector('#registerContact').value;
             const email = form.querySelector('#registerEmail').value;
             const password = form.querySelector('#registerPassword').value;
             const confirmPassword = form.querySelector('#registerConfirmPassword').value;
 
-            // Update validation to include the new required fields
             if (!username.trim() || !email.trim() || !password.trim()) {
                 showMessage('Please fill out Username, Email, and Password.', 'warning');
                 return;
@@ -712,11 +718,10 @@
                 showMessage('Passwords do not match.', 'error');
                 return;
             }
-
             setButtonLoading(form.querySelector('button'), true);
             try {
-                // Send all new data to the API client function
-                const data = await API.registerUser(username, contact, email, password); 
+                // The API client now correctly sends all fields
+                const data = await API.registerUser(username, contact, email, password);
                 window.location.href = '/app';
             } catch (error) {
                 showMessage(error.message, 'error');
