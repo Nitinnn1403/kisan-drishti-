@@ -527,7 +527,7 @@
 
                         <!-- Right Column: Contact Form -->
                         <div>
-                            <form action="https://formspree.io/f/xnnzjara" method="POST" class="space-y-6">
+                            <form id="contactForm" action="https://formspree.io/f/xnnzjara" method="POST" class="space-y-6">
                                 <div>
                                     <label for="full-name" class="block text-sm font-semibold text-gray-300 mb-2">Full Name</label>
                                     <!-- Add name="name" -->
@@ -720,6 +720,44 @@
                 showMessage(error.message, 'error');
             } finally {
                 setButtonLoading(form.querySelector('button'), false);
+            }
+        }
+
+        async function handleContactSubmit(event) {
+            event.preventDefault(); // This is the most important line! It stops the redirect.
+
+            const form = event.target;
+            const button = form.querySelector('button[type="submit"]');
+            const formData = new FormData(form);
+
+            // Temporarily disable the button and show a "Sending..." message
+            button.textContent = 'Sending...';
+            button.disabled = true;
+
+            try {
+                const response = await fetch(form.action, {
+                    method: form.method,
+                    body: formData,
+                    headers: {
+                        'Accept': 'application/json' // This tells Formspree to reply with JSON
+                    }
+                });
+
+                if (response.ok) {
+                    // Use your existing showMessage function for success!
+                    showMessage('Thank you for your message!', 'success');
+                    form.reset(); // Clear the form fields
+                } else {
+                    const data = await response.json();
+                    const errorMessage = data.errors?.map(e => e.message).join(', ') || 'An unknown error occurred.';
+                    showMessage(errorMessage, 'error');
+                }
+            } catch (error) {
+                showMessage('A network error occurred. Please try again.', 'error');
+            } finally {
+                // Re-enable the button and set the text back
+                button.textContent = 'Send Message';
+                button.disabled = false;
             }
         }
 
