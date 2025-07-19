@@ -195,7 +195,7 @@
         }
         .auth-form-container {
             position: relative;
-            min-height: 300px;
+            transition: height 0.4s ease-in-out;
             overflow: hidden;
         }
         .auth-form {
@@ -622,17 +622,22 @@
             const registerForm = document.getElementById('registerFormContainer');
             const loginLink = document.getElementById('login-switch-link');
             const registerLink = document.getElementById('register-switch-link');
+            const container = document.querySelector('.auth-form-container');
 
             if (showLogin) {
                 loginForm.classList.add('active');
                 registerForm.classList.remove('active');
                 loginLink.classList.add('hidden');
                 registerLink.classList.remove('hidden');
+                // Set the container's height to match the login form
+                container.style.height = loginForm.scrollHeight + 'px';
             } else {
                 loginForm.classList.remove('active');
                 registerForm.classList.add('active');
                 loginLink.classList.remove('hidden');
                 registerLink.classList.add('hidden');
+                // Set the container's height to match the (taller) registration form
+                container.style.height = registerForm.scrollHeight + 'px';
             }
         }
 
@@ -643,38 +648,22 @@
         const modalCloseBtn = document.getElementById('modal-close-btn');
 
         const openModal = () => {
-            // 1. First, make the overlay part of the layout, but keep it invisible.
             modalOverlay.style.display = 'flex';
-            // 2. Use a tiny timeout. This allows the browser to process the 'display' change
-            //    BEFORE it tries to apply the transition. This is the key to the fix.
             setTimeout(() => {
                 modalOverlay.classList.add('visible');
-            }, 10); // A 10ms delay is all that's needed.
+                // Set the initial height correctly when the modal opens
+                toggleAuthForms(true); // Default to showing the login form
+            }, 10);
         };
 
         const closeModal = () => {
-            // 1. Start the fade-out animation by removing the class.
             modalOverlay.classList.remove('visible');
-            // 2. Wait for the animation to finish (300ms) before hiding the element completely.
-            setTimeout(() => {
-                modalOverlay.style.display = 'none';
-            }, 300); // This duration MUST match your CSS transition duration.
+            setTimeout(() => { modalOverlay.style.display = 'none'; }, 300);
         };
 
-        modalTriggers.forEach(trigger => {
-            trigger.addEventListener('click', (e) => {
-                e.preventDefault();
-                openModal();
-            });
-        });
-
+        modalTriggers.forEach(trigger => trigger.addEventListener('click', (e) => { e.preventDefault(); openModal(); }));
         modalCloseBtn.addEventListener('click', closeModal);
-
-        modalOverlay.addEventListener('click', (e) => {
-            if (e.target === modalOverlay) {
-                closeModal();
-            }
-        });
+        modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(); });
 
         // --- Form Submission Logic (adapted from script.js) ---
         async function handleLogin(event) {
@@ -735,6 +724,7 @@
         document.getElementById('registerForm').addEventListener('submit', handleRegister);
         document.getElementById('showRegister').addEventListener('click', (e) => { e.preventDefault(); toggleAuthForms(false); });
         document.getElementById('showLogin').addEventListener('click', (e) => { e.preventDefault(); toggleAuthForms(true); });
+        
         document.addEventListener('DOMContentLoaded', () => {
             const glowCards = document.querySelectorAll('.glow-card');
 
