@@ -14,7 +14,7 @@ from utils import get_indian_state_from_gps, get_district_from_gps
 from flask_cors import CORS
 
 app = Flask(__name__, template_folder='.')
-CORS(app, resources={r"/api/*": {"origins": "https://kisan-drishti.vercel.app"}})
+CORS(app, resources={r"/api/*": {"origins": "https://kisan-drishti.vercel.app/"}})
 app.secret_key = FLASK_SECRET_KEY
 
 config = {"CACHE_TYPE": "SimpleCache", "CACHE_DEFAULT_TIMEOUT": 3600}
@@ -305,7 +305,7 @@ def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'admin_logged_in' not in session:
-            return render_template('admin_login.html')
+            return jsonify({"success": False, "error": "Admin access required"}), 401
         return f(*args, **kwargs)
     return decorated_function
 
