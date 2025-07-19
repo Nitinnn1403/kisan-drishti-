@@ -10,11 +10,11 @@ async function handleResponse(response) {
 
 // --- User Authentication ---
 
-export async function loginUser(username, password) {
+export async function loginUser(email, password) {
     const response = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ email, password }), // Use 'email' key
     });
     return handleResponse(response);
 }
