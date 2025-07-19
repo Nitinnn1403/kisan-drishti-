@@ -48,6 +48,8 @@ def create_tables():
                 CREATE TABLE IF NOT EXISTS users (
                     id SERIAL PRIMARY KEY,
                     username VARCHAR(255) UNIQUE NOT NULL,
+                    contact VARCHAR(20),
+                    email VARCHAR(255) UNIQUE NOT NULL,
                     password_hash VARCHAR(255) NOT NULL,
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
                 );
@@ -71,24 +73,27 @@ def create_tables():
         if conn:
             release_db_connection(conn)
 
-def register_user(username, password):
+def register_user(username, contact, email, password): # Added all new arguments
     conn = None
     try:
         conn = get_db_connection()
         with conn.cursor(cursor_factory=DictCursor) as cursor:
-            cursor.execute("SELECT id FROM users WHERE username = %s", (username,))
+            # Check if username or email already exists
+            cursor.execute("SELECT id FROM users WHERE username = %s OR email = %s", (username, email,))
             if cursor.fetchone():
-                return {"success": False, "error": "Username already exists."}, 409
+                return {"success": False, "error": "Username or email already taken."}, 409
 
             hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            # Insert all the new fields into the database
             cursor.execute(
-                "INSERT INTO users (username, password_hash) VALUES (%s, %s) RETURNING id",
-                (username, hashed_password)
+                "INSERT INTO users (username, contact, email, password_hash) VALUES (%s, %s, %s, %s) RETURNING id, username",
+                (username, contact, email, hashed_password)
             )
-            user_id = cursor.fetchone()['id']
+            user = cursor.fetchone()
         conn.commit()
-        logger.info(f"User {username} registered successfully with ID: {user_id}.")
-        return {"success": True, "message": "Registration successful!", "user_id": user_id, "username": username}, 201
+        logger.info(f"User '{user['username']}' registered successfully with ID: {user['id']}.")
+        # Return the username for the session
+        return {"success": True, "message": "Registration successful!", "user_id": user['id'], "username": user['username']}, 201
     except Exception as e:
         logger.error(f"Error during registration: {e}")
         return {"success": False, "error": "Database error during registration."}, 500
@@ -96,17 +101,19 @@ def register_user(username, password):
         if conn:
             release_db_connection(conn)
 
-def login_user(username, password):
+def login_user(email, password): # Changed argument
     conn = None
     try:
         conn = get_db_connection()
         with conn.cursor(cursor_factory=DictCursor) as cursor:
-            cursor.execute("SELECT id, username, password_hash FROM users WHERE username = %s", (username,))
+            # Select by email
+            cursor.execute("SELECT id, full_name, password_hash FROM users WHERE email = %s", (email,))
             user = cursor.fetchone()
             if user and bcrypt.checkpw(password.encode('utf-8'), user['password_hash'].encode('utf-8')):
-                logger.info(f"User {username} logged in successfully.")
-                return {"success": True, "user_id": user['id'], "username": user['username']}, 200
-        return {"success": False, "error": "Invalid username or password."}, 401
+                logger.info(f"User {user['full_name']} logged in successfully.")
+                # Return full_name instead of username
+                return {"success": True, "user_id": user['id'], "full_name": user['full_name']}, 200
+        return {"success": False, "error": "Invalid email or password."}, 401
     except Exception as e:
         logger.error(f"Error during login: {e}")
         return {"success": False, "error": "Database error during login."}, 500

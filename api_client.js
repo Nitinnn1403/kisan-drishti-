@@ -19,11 +19,12 @@ export async function loginUser(username, password) {
     return handleResponse(response);
 }
 
-export async function registerUser(username, password) {
+export async function registerUser(username, contact, email, password) { // Add new params
     const response = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        // Send all new fields in the body
+        body: JSON.stringify({ username, contact, email, password }),
     });
     return handleResponse(response);
 }

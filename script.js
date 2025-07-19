@@ -143,27 +143,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function handleRegister(event) {
         event.preventDefault();
-        UI.setButtonLoading(event.target.querySelector('button'), true);
-        const username = elements.registerUsername.value;
-        const password = elements.registerPassword.value;
-        const confirmPassword = elements.registerConfirmPassword.value;
+        const form = event.target;
+        // Get values from all the new fields
+        const username = form.querySelector('#registerUsername').value;
+        const contact = form.querySelector('#registerContact').value;
+        const email = form.querySelector('#registerEmail').value;
+        const password = form.querySelector('#registerPassword').value;
+        const confirmPassword = form.querySelector('#registerConfirmPassword').value;
 
-        if (!username || !password || !confirmPassword) {
-            UI.setButtonLoading(event.target.querySelector('button'), false);
-            return UI.showMessage('Please fill in all fields.', 'warning');
+        // Update validation to include the new required fields
+        if (!username.trim() || !email.trim() || !password.trim()) {
+            showMessage('Please fill out Username, Email, and Password.', 'warning');
+            return;
         }
         if (password !== confirmPassword) {
-            UI.setButtonLoading(event.target.querySelector('button'), false);
-            return UI.showMessage('Passwords do not match.', 'error');
+            showMessage('Passwords do not match.', 'error');
+            return;
         }
-        
+
+        setButtonLoading(form.querySelector('button'), true);
         try {
-            const data = await API.registerUser(username, password);
+            // Send all new data to the API client function
+            const data = await API.registerUser(username, contact, email, password); 
             window.location.href = '/app';
         } catch (error) {
-            UI.showMessage(error.message, 'error');
+            showMessage(error.message, 'error');
         } finally {
-            UI.setButtonLoading(event.target.querySelector('button'), false);
+            setButtonLoading(form.querySelector('button'), false);
         }
     }
 

@@ -67,22 +67,28 @@ def serve_static(filename):
 # --- Authentication Routes (No Changes) ---
 @app.route('/api/login', methods=['POST'])
 def login():
-    username, password = request.json.get('username'), request.json.get('password')
-    response_data, status_code = database.login_user(username, password)
+    email, password = request.json.get('email'), request.json.get('password')
+    response_data, status_code = database.login_user(email, password)
     if response_data.get("success"):
         session['logged_in'] = True
         session['user_id'] = response_data['user_id']
-        session['username'] = response_data['username']
+        # The database login function now returns 'username', so we use that
+        session['username'] = response_data['username'] 
     return jsonify(response_data), status_code
 
 @app.route('/api/register', methods=['POST'])
 def register():
-    username, password = request.json.get('username'), request.json.get('password')
-    response, status_code = database.register_user(username, password)
+    # Get all the new fields from the request
+    username = request.json.get('username')
+    contact = request.json.get('contact')
+    email = request.json.get('email')
+    password = request.json.get('password')
+    
+    response, status_code = database.register_user(username, contact, email, password)
     if response.get("success"):
         session['logged_in'] = True
         session['user_id'] = response['user_id']
-        session['username'] = response['username']
+        session['username'] = response['username'] # Set username in session
     return jsonify(response), status_code
 
 @app.route('/api/logout', methods=['POST'])
