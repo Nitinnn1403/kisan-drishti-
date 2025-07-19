@@ -1,4 +1,5 @@
 // api_client.js - Final version with all API functions
+const API_BASE_URL = 'https://kisandrishti.onrender.com';
 
 async function handleResponse(response) {
     if (!response.ok) {
@@ -11,7 +12,7 @@ async function handleResponse(response) {
 // --- User Authentication ---
 
 export async function loginUser(email, password) {
-    const response = await fetch('/api/login', {
+    const response = await fetch('${API_BASE_URL}/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }), // Use 'email' key
@@ -20,7 +21,7 @@ export async function loginUser(email, password) {
 }
 
 export async function registerUser(username, contact, email, password) { // Add new params
-    const response = await fetch('/api/register', {
+    const response = await fetch('${API_BASE_URL}/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         // Send all new fields in the body
@@ -30,37 +31,37 @@ export async function registerUser(username, contact, email, password) { // Add 
 }
 
 export async function logoutUser() {
-    return handleResponse(await fetch('/api/logout', { method: 'POST' }));
+    return handleResponse(await fetch('${API_BASE_URL}/api/logout', { method: 'POST' }));
 }
 
 export async function checkAuthStatus() {
-    return handleResponse(await fetch('/api/check_auth'));
+    return handleResponse(await fetch('${API_BASE_URL}/api/check_auth'));
 }
 
 export async function getDashboardSummary(lang) {
-    return handleResponse(await fetch(`/api/dashboard_summary?lang=${lang}`));
+    return handleResponse(await fetch(`${API_BASE_URL}/api/dashboard_summary?lang=${lang}`));
 }
 
 
 // --- Analysis Features ---
 
 export async function analyzeCrop(formData) {
-    return handleResponse(await fetch('/api/analyze_crop', { method: 'POST', body: formData }));
+    return handleResponse(await fetch('${API_BASE_URL}/api/analyze_crop', { method: 'POST', body: formData }));
 }
 
 export async function analyzeField(formData) {
-    return handleResponse(await fetch('/api/analyze_field', { method: 'POST', body: formData }));
+    return handleResponse(await fetch('${API_BASE_URL}/api/analyze_field', { method: 'POST', body: formData }));
 }
 
 
 // --- Price Information Feature ---
 
 export async function getLocations() {
-    return handleResponse(await fetch('/api/locations'));
+    return handleResponse(await fetch('${API_BASE_URL}/api/locations'));
 }
 
 export async function getMandiPrices(payload) {
-    const response = await fetch('/api/mandi_prices', {
+    const response = await fetch('${API_BASE_URL}/api/mandi_prices', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -72,7 +73,7 @@ export async function getMandiPrices(payload) {
 // --- Report Management ---
 
 export async function saveReport(reportData) {
-    const response = await fetch('/api/save_report', {
+    const response = await fetch('${API_BASE_URL}/api/save_report', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ report_data: reportData }),
@@ -81,15 +82,15 @@ export async function saveReport(reportData) {
 }
 
 export async function fetchReports() {
-    return handleResponse(await fetch('/api/reports'));
+    return handleResponse(await fetch('${API_BASE_URL}/api/reports'));
 }
 
 export async function deleteReport(reportId) {
-    return handleResponse(await fetch(`/api/reports/${reportId}`, { method: 'DELETE' }));
+    return handleResponse(await fetch(`${API_BASE_URL}/api/reports/${reportId}`, { method: 'DELETE' }));
 }
 
 export async function chatWithDrishti(payload) { // Changed 'data' to 'payload'
-    const response = await fetch('/api/chat_with_drishti', {
+    const response = await fetch('${API_BASE_URL}/api/chat_with_drishti', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload), // Send the entire payload object
@@ -98,7 +99,7 @@ export async function chatWithDrishti(payload) { // Changed 'data' to 'payload'
 }
 
 export async function changePassword(current_password, new_password) {
-    const response = await fetch('/api/change_password', {
+    const response = await fetch('${API_BASE_URL}/api/change_password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ current_password, new_password }),
@@ -107,9 +108,9 @@ export async function changePassword(current_password, new_password) {
 }
 
 export async function deleteAccount() {
-    return handleResponse(await fetch('/api/delete_account', { method: 'DELETE' }));
+    return handleResponse(await fetch('${API_BASE_URL}/api/delete_account', { method: 'DELETE' }));
 }
 
 export async function getFertilizerPlan(reportId) {
-    return handleResponse(await fetch(`/api/get_fertilizer_plan/${reportId}`));
+    return handleResponse(await fetch(`${API_BASE_URL}/api/get_fertilizer_plan/${reportId}`));
 }
