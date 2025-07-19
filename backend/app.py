@@ -14,7 +14,14 @@ from utils import get_indian_state_from_gps, get_district_from_gps
 from flask_cors import CORS
 
 app = Flask(__name__, template_folder='.')
-CORS(app, resources={r"/api/*": {"origins": "https://kisan-drishti.vercel.app/"}})
+
+allowed_origins = [
+    "http://127.0.0.1:5500",      # For local development
+    "http://localhost:5500",       # For local development
+    "https://kisan-drishti.vercel.app"  # Your production frontend on Vercel
+]
+
+CORS(app, resources={r"/api/*": {"origins": allowed_origins}})
 app.secret_key = FLASK_SECRET_KEY
 
 config = {"CACHE_TYPE": "SimpleCache", "CACHE_DEFAULT_TIMEOUT": 3600}
