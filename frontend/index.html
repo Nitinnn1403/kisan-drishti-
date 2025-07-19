@@ -711,7 +711,7 @@
             try {
                 // The API client now correctly sends all fields
                 const data = await API.registerUser(username, contact, email, password);
-                window.location.href = '/app/html';
+                window.location.href = '/app.html';
             } catch (error) {
                 showMessage(error.message, 'error');
             } finally {

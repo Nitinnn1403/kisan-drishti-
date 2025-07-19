@@ -1,5 +1,3 @@
-// In frontend/api_client.js
-
 // This is the public URL of your backend on Render.
 const API_BASE_URL = 'https://kisandrishti.onrender.com';
 
@@ -11,13 +9,14 @@ async function handleResponse(response) {
     return response.json();
 }
 
-// --- ALL FUNCTIONS UPDATED TO USE BACKTICKS (`) ---
+// --- ALL FUNCTIONS UPDATED TO INCLUDE 'credentials: "include"' ---
 
 export async function loginUser(email, password) {
     const response = await fetch(`${API_BASE_URL}/api/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
+        credentials: 'include' // Allow cookies to be sent
     });
     return handleResponse(response);
 }
@@ -27,32 +26,50 @@ export async function registerUser(username, contact, email, password) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, contact, email, password }),
+        credentials: 'include' // Allow cookies to be sent
     });
     return handleResponse(response);
 }
 
 export async function logoutUser() {
-    return handleResponse(await fetch(`${API_BASE_URL}/api/logout`, { method: 'POST' }));
+    return handleResponse(await fetch(`${API_BASE_URL}/api/logout`, {
+        method: 'POST',
+        credentials: 'include' // Allow cookies to be sent
+    }));
 }
 
 export async function checkAuthStatus() {
-    return handleResponse(await fetch(`${API_BASE_URL}/api/check_auth`));
+    return handleResponse(await fetch(`${API_BASE_URL}/api/check_auth`, {
+        credentials: 'include' // Allow cookies to be sent
+    }));
 }
 
 export async function getDashboardSummary(lang) {
-    return handleResponse(await fetch(`${API_BASE_URL}/api/dashboard_summary?lang=${lang}`));
+    return handleResponse(await fetch(`${API_BASE_URL}/api/dashboard_summary?lang=${lang}`, {
+        credentials: 'include' // Allow cookies to be sent
+    }));
 }
 
 export async function analyzeCrop(formData) {
-    return handleResponse(await fetch(`${API_BASE_URL}/api/analyze_crop`, { method: 'POST', body: formData }));
+    return handleResponse(await fetch(`${API_BASE_URL}/api/analyze_crop`, {
+        method: 'POST',
+        body: formData,
+        credentials: 'include' // Allow cookies to be sent
+    }));
 }
 
 export async function analyzeField(formData) {
-    return handleResponse(await fetch(`${API_BASE_URL}/api/analyze_field`, { method: 'POST', body: formData }));
+    return handleResponse(await fetch(`${API_BASE_URL}/api/analyze_field`, {
+        method: 'POST',
+        body: formData,
+        credentials: 'include' // Allow cookies to be sent
+    }));
 }
 
 export async function getLocations() {
-    return handleResponse(await fetch(`${API_BASE_URL}/api/locations`));
+    return handleResponse(await fetch(`${API_BASE_URL}/api/locations`, {
+        credentials: 'include' // Allow cookies to be sent
+    }));
 }
 
 export async function getMandiPrices(payload) {
@@ -60,6 +77,7 @@ export async function getMandiPrices(payload) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
+        credentials: 'include' // Allow cookies to be sent
     });
     return handleResponse(response);
 }
@@ -69,16 +87,22 @@ export async function saveReport(reportData) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ report_data: reportData }),
+        credentials: 'include' // Allow cookies to be sent
     });
     return handleResponse(response);
 }
 
 export async function fetchReports() {
-    return handleResponse(await fetch(`${API_BASE_URL}/api/reports`));
+    return handleResponse(await fetch(`${API_BASE_URL}/api/reports`, {
+        credentials: 'include' // Allow cookies to be sent
+    }));
 }
 
 export async function deleteReport(reportId) {
-    return handleResponse(await fetch(`${API_BASE_URL}/api/reports/${reportId}`, { method: 'DELETE' }));
+    return handleResponse(await fetch(`${API_BASE_URL}/api/reports/${reportId}`, {
+        method: 'DELETE',
+        credentials: 'include' // Allow cookies to be sent
+    }));
 }
 
 export async function chatWithDrishti(payload) {
@@ -86,6 +110,7 @@ export async function chatWithDrishti(payload) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
+        credentials: 'include' // Allow cookies to be sent
     });
     return handleResponse(response);
 }
@@ -95,14 +120,20 @@ export async function changePassword(current_password, new_password) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ current_password, new_password }),
+        credentials: 'include' // Allow cookies to be sent
     });
     return handleResponse(response);
 }
 
 export async function deleteAccount() {
-    return handleResponse(await fetch(`${API_BASE_URL}/api/delete_account`, { method: 'DELETE' }));
+    return handleResponse(await fetch(`${API_BASE_URL}/api/delete_account`, {
+        method: 'DELETE',
+        credentials: 'include' // Allow cookies to be sent
+    }));
 }
 
 export async function getFertilizerPlan(reportId) {
-    return handleResponse(await fetch(`${API_BASE_URL}/api/get_fertilizer_plan/${reportId}`));
+    return handleResponse(await fetch(`${API_BASE_URL}/api/get_fertilizer_plan/${reportId}`, {
+        credentials: 'include' // Allow cookies to be sent
+    }));
 }

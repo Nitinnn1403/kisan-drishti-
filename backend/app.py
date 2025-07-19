@@ -15,13 +15,16 @@ from flask_cors import CORS
 
 app = Flask(__name__)
 
+app.config['SESSION_COOKIE_SAMESITE'] = 'None'
+app.config['SESSION_COOKIE_SECURE'] = True
+
 allowed_origins = [
     "http://127.0.0.1:5500",      # For local development
     "http://localhost:5500",       # For local development
     "https://kisan-drishti.vercel.app"  # Your production frontend on Vercel
 ]
 
-CORS(app, resources={r"/api/*": {"origins": allowed_origins}})
+CORS(app, resources={r"/api/*": {"origins": allowed_origins}}, supports_credentials=True)
 app.secret_key = FLASK_SECRET_KEY
 
 config = {"CACHE_TYPE": "SimpleCache", "CACHE_DEFAULT_TIMEOUT": 3600}

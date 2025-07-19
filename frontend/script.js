@@ -114,11 +114,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (authStatus && authStatus.isAuthenticated) {
                 initializeMainApp(authStatus.username);
             } else {
-                window.location.href = '/index.html';
+                window.location.href = '/';
             }
         } catch (error) {
             console.error("Auth check failed, redirecting to landing page.", error);
-            window.location.href = '/index.html';
+            window.location.href = '/';
         }
     }
 
@@ -170,7 +170,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function handleLogout() {
         try { 
             await API.logoutUser(); 
-            window.location.href = '/index.html';
+            window.location.href = '/';
         } catch (error) { UI.showMessage(error.message, 'error'); }
     }
     
