@@ -101,18 +101,17 @@ def register_user(username, contact, email, password): # Added all new arguments
         if conn:
             release_db_connection(conn)
 
-def login_user(email, password): # Changed argument
+def login_user(email, password):
     conn = None
     try:
         conn = get_db_connection()
         with conn.cursor(cursor_factory=DictCursor) as cursor:
-            # Select by email
-            cursor.execute("SELECT id, full_name, password_hash FROM users WHERE email = %s", (email,))
+            cursor.execute("SELECT id, username, password_hash FROM users WHERE email = %s", (email,))
             user = cursor.fetchone()
             if user and bcrypt.checkpw(password.encode('utf-8'), user['password_hash'].encode('utf-8')):
-                logger.info(f"User {user['full_name']} logged in successfully.")
-                # Return full_name instead of username
-                return {"success": True, "user_id": user['id'], "full_name": user['full_name']}, 200
+                logger.info(f"User {user['username']} logged in successfully.")
+                return {"success": True, "user_id": user['id'], "username": user['username']}, 200
+                
         return {"success": False, "error": "Invalid email or password."}, 401
     except Exception as e:
         logger.error(f"Error during login: {e}")
