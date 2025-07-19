@@ -14,6 +14,14 @@ from utils import get_indian_state_from_gps, get_district_from_gps
 from flask_cors import CORS
 
 app = Flask(__name__)
+
+allowed_origins = [
+    "https://kisan-drishti.vercel.app",
+    "http://127.0.0.1:5500",
+    "http://localhost:5500"
+]
+CORS(app, origins=allowed_origins, supports_credentials=True)
+
 app.secret_key = FLASK_SECRET_KEY
 
 
@@ -23,13 +31,6 @@ app.config['SESSION_COOKIE_SECURE'] = True
 config = {"CACHE_TYPE": "SimpleCache", "CACHE_DEFAULT_TIMEOUT": 3600}
 app.config.from_mapping(config)
 cache = Cache(app)
-
-allowed_origins = [
-    "https://kisan-drishti.vercel.app",
-    "http://127.0.0.1:5500",
-    "http://localhost:5500"
-]
-CORS(app, origins=allowed_origins, supports_credentials=True)
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')
 logger = logging.getLogger(__name__)
