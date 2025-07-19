@@ -11,7 +11,7 @@ import services
 from collections import Counter
 from config import FLASK_SECRET_KEY
 from utils import get_indian_state_from_gps, get_district_from_gps
-from flask_cors import CORS
+from flask_cors import CORS, cross_origin
 
 app = Flask(__name__)
 app.secret_key = FLASK_SECRET_KEY
@@ -19,14 +19,6 @@ app.secret_key = FLASK_SECRET_KEY
 
 app.config['SESSION_COOKIE_SAMESITE'] = 'None'
 app.config['SESSION_COOKIE_SECURE'] = True
-
-allowed_origins = [
-    "http://127.0.0.1:5500",      # For local development
-    "http://localhost:5500",       # For local development
-    "https://kisan-drishti.vercel.app"  # Your production frontend on Vercel
-]
-
-CORS(app, origins=allowed_origins, supports_credentials=True)
 
 config = {"CACHE_TYPE": "SimpleCache", "CACHE_DEFAULT_TIMEOUT": 3600}
 app.config.from_mapping(config)
@@ -66,6 +58,7 @@ def login_required_page(f):
     return decorated_function
 
 # --- Authentication Routes (No Changes) ---
+@cross_origin(supports_credentials=True, origins=["https://kisan-drishti.vercel.app", "http://127.0.0.1:5500", "http://localhost:5500"])
 @app.route('/api/login', methods=['POST'])
 def login():
     email, password = request.json.get('email'), request.json.get('password')
@@ -77,6 +70,7 @@ def login():
         session['username'] = response_data['username'] 
     return jsonify(response_data), status_code
 
+@cross_origin(supports_credentials=True, origins=["https://kisan-drishti.vercel.app", "http://127.0.0.1:5500", "http://localhost:5500"])
 @app.route('/api/register', methods=['POST'])
 def register():
     # Get all the new fields from the request
@@ -92,17 +86,20 @@ def register():
         session['username'] = response['username'] # Set username in session
     return jsonify(response), status_code
 
+@cross_origin(supports_credentials=True, origins=["https://kisan-drishti.vercel.app", "http://127.0.0.1:5500", "http://localhost:5500"])
 @app.route('/api/logout', methods=['POST'])
 @login_required
 def logout():
     session.clear()
     return jsonify({"success": True, "message": "Logged out successfully."})
 
+@cross_origin(supports_credentials=True, origins=["https://kisan-drishti.vercel.app", "http://127.0.0.1:5500", "http://localhost:5500"])
 @app.route('/api/check_auth', methods=['GET'])
 def check_auth():
     is_authenticated = 'logged_in' in session and session.get('logged_in')
     return jsonify({"isAuthenticated": is_authenticated, "username": session.get('username') if is_authenticated else None})
 
+@cross_origin(supports_credentials=True, origins=["https://kisan-drishti.vercel.app", "http://127.0.0.1:5500", "http://localhost:5500"])
 @app.route('/api/dashboard_summary', methods=['GET'])
 @login_required
 def dashboard_summary():
@@ -115,6 +112,7 @@ def dashboard_summary():
     else:
         return jsonify(summary_data), 500
 
+@cross_origin(supports_credentials=True, origins=["https://kisan-drishti.vercel.app", "http://127.0.0.1:5500", "http://localhost:5500"])
 @app.route('/api/analyze_crop', methods=['POST'])
 @login_required
 def analyze_crop():
@@ -144,6 +142,7 @@ def analyze_crop():
         
     return jsonify({"success": True, "result": analysis_result})
 
+@cross_origin(supports_credentials=True, origins=["https://kisan-drishti.vercel.app", "http://127.0.0.1:5500", "http://localhost:5500"])
 @app.route('/api/analyze_field', methods=['POST'])
 @login_required
 def analyze_field():
@@ -197,6 +196,7 @@ def analyze_field():
     
     return jsonify(full_report)
 
+@cross_origin(supports_credentials=True, origins=["https://kisan-drishti.vercel.app", "http://127.0.0.1:5500", "http://localhost:5500"])
 @app.route('/api/get_fertilizer_plan/<int:report_id>')
 @login_required
 def get_fertilizer_plan(report_id):
@@ -229,10 +229,12 @@ def get_fertilizer_plan(report_id):
         logger.error(f"Error generating fertilizer plan: {e}", exc_info=True)
         return jsonify({"success": False, "error": "An internal error occurred."}), 500
 
+@cross_origin(supports_credentials=True, origins=["https://kisan-drishti.vercel.app", "http://127.0.0.1:5500", "http://localhost:5500"])
 @app.route('/api/locations')
 def get_locations():
     return send_from_directory('data', 'state_districts.json')
 
+@cross_origin(supports_credentials=True, origins=["https://kisan-drishti.vercel.app", "http://127.0.0.1:5500", "http://localhost:5500"])
 @app.route('/api/mandi_prices', methods=['POST'])
 @login_required
 def get_prices():
@@ -243,6 +245,7 @@ def get_prices():
     else:
         return jsonify({"success": True, "result": price_result})
 
+@cross_origin(supports_credentials=True, origins=["https://kisan-drishti.vercel.app", "http://127.0.0.1:5500", "http://localhost:5500"])
 @app.route('/api/save_report', methods=['POST'])
 @login_required
 def save_report():
@@ -251,6 +254,7 @@ def save_report():
     res, code = database.save_report_to_db(session['user_id'], loc.get('latitude'), loc.get('longitude'), json.dumps(data))
     return jsonify(res), code
 
+@cross_origin(supports_credentials=True, origins=["https://kisan-drishti.vercel.app", "http://127.0.0.1:5500", "http://localhost:5500"])
 @app.route('/api/reports', methods=['GET'])
 @login_required
 def get_reports():
@@ -261,12 +265,14 @@ def get_reports():
                 report['saved_at'] = report['saved_at'].isoformat()
     return jsonify(res), code
 
+@cross_origin(supports_credentials=True, origins=["https://kisan-drishti.vercel.app", "http://127.0.0.1:5500", "http://localhost:5500"])
 @app.route('/api/reports/<int:report_id>', methods=['DELETE'])
 @login_required
 def delete_report(report_id):
     res, code = database.delete_report_from_db(report_id, session['user_id'])
     return jsonify(res), code
 
+@cross_origin(supports_credentials=True, origins=["https://kisan-drishti.vercel.app", "http://127.0.0.1:5500", "http://localhost:5500"])
 @app.route('/api/change_password', methods=['POST'])
 @login_required
 def change_password():
@@ -274,6 +280,7 @@ def change_password():
     res, code = database.update_user_password(session['user_id'], data.get('current_password'), data.get('new_password'))
     return jsonify(res), code
 
+@cross_origin(supports_credentials=True, origins=["https://kisan-drishti.vercel.app", "http://127.0.0.1:5500", "http://localhost:5500"])
 @app.route('/api/delete_account', methods=['DELETE'])
 @login_required
 def delete_account():
@@ -281,6 +288,7 @@ def delete_account():
     if res.get("success"): session.clear()
     return jsonify(res), code
 
+@cross_origin(supports_credentials=True, origins=["https://kisan-drishti.vercel.app", "http://127.0.0.1:5500", "http://localhost:5500"])
 @app.route('/api/chat_with_drishti', methods=['POST'])
 @login_required
 def chat_with_drishti():
@@ -320,6 +328,7 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+@cross_origin(supports_credentials=True, origins=["https://kisan-drishti.vercel.app", "http://127.0.0.1:5500", "http://localhost:5500"])
 @app.route('/api/admin/stats')
 @admin_required
 def get_admin_stats():
@@ -344,6 +353,7 @@ def get_admin_stats():
         if conn:
             database.release_db_connection(conn)
 
+@cross_origin(supports_credentials=True, origins=["https://kisan-drishti.vercel.app", "http://127.0.0.1:5500", "http://localhost:5500"])
 @app.route('/api/admin/reports')
 @admin_required
 def get_admin_reports():
@@ -377,6 +387,7 @@ def get_admin_reports():
         if conn:
             database.release_db_connection(conn)
 
+@cross_origin(supports_credentials=True, origins=["https://kisan-drishti.vercel.app", "http://127.0.0.1:5500", "http://localhost:5500"])
 @app.route('/api/admin/analytics/registrations')
 @admin_required
 def get_registration_analytics():
@@ -402,6 +413,7 @@ def get_registration_analytics():
         if conn:
             database.release_db_connection(conn)
 
+@cross_origin(supports_credentials=True, origins=["https://kisan-drishti.vercel.app", "http://127.0.0.1:5500", "http://localhost:5500"])
 @app.route('/api/admin/analytics/top_crops')
 @admin_required
 def get_top_crops_analytics():
