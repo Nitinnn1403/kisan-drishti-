@@ -7,11 +7,13 @@
 </head>
 <body class="bg-gray-100 flex items-center justify-center h-screen">
     <div class="w-full max-w-xs">
-        <form action="/admin/login" method="post" class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+        <!-- The form no longer needs 'action' or 'method' attributes -->
+        <form id="adminLoginForm" class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
             <h1 class="text-2xl font-bold mb-6 text-center">Admin Login</h1>
-            {% if error %}
-                <p class="text-red-500 text-xs italic mb-4">{{ error }}</p>
-            {% endif %}
+            
+            <!-- This is where error messages will appear -->
+            <div id="errorMessage" class="text-red-500 text-xs italic mb-4 h-4"></div>
+
             <div class="mb-4">
                 <label class="block text-gray-700 text-sm font-bold mb-2" for="password">Password</label>
                 <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700" id="password" name="password" type="password" placeholder="******************">
@@ -23,5 +25,40 @@
             </div>
         </form>
     </div>
+
+    <!-- This script makes the form work with your Render backend -->
+    <script>
+        document.getElementById('adminLoginForm').addEventListener('submit', async (event) => {
+            event.preventDefault(); // Stop the form from submitting the old way
+
+            const password = document.getElementById('password').value;
+            const errorMessageDiv = document.getElementById('errorMessage');
+            errorMessageDiv.textContent = ''; // Clear old errors
+            
+            // This is the full, correct URL of your backend API on Render
+            const API_BASE_URL = 'https://kisandrishti.onrender.com';
+
+            try {
+                // Send the data to the backend using a fetch API call
+                const response = await fetch(`${API_BASE_URL}/api/admin/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password: password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    // If login is successful, redirect to the new, "pretty" admin dashboard URL
+                    window.location.href = '/admin/dashboard';
+                } else {
+                    // Show the error message from the server
+                    errorMessageDiv.textContent = data.error || 'Login failed.';
+                }
+            } catch (error) {
+                errorMessageDiv.textContent = 'A network error occurred. Please try again.';
+            }
+        });
+    </script>
 </body>
 </html>
