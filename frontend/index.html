@@ -681,7 +681,7 @@
             try {
                 // The API client now correctly sends 'email'
                 const data = await API.loginUser(email, password);
-                window.location.href = '/app';
+                window.location.href = '/app.html';
             } catch (error) {
                 showMessage(error.message, 'error');
             } finally {
@@ -711,7 +711,7 @@
             try {
                 // The API client now correctly sends all fields
                 const data = await API.registerUser(username, contact, email, password);
-                window.location.href = '/app';
+                window.location.href = '/app/html';
             } catch (error) {
                 showMessage(error.message, 'error');
             } finally {

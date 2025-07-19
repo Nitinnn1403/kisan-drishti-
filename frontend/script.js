@@ -114,11 +114,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (authStatus && authStatus.isAuthenticated) {
                 initializeMainApp(authStatus.username);
             } else {
-                window.location.href = '/';
+                window.location.href = '/index.html';
             }
         } catch (error) {
             console.error("Auth check failed, redirecting to landing page.", error);
-            window.location.href = '/';
+            window.location.href = '/index.html';
         }
     }
 
@@ -133,7 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         try {
             const data = await API.loginUser(username, password);
-            window.location.href = '/app';
+            window.location.href = '/app.html';
         } catch (error) {
             UI.showMessage(error.message, 'error');
         } finally {
@@ -159,7 +159,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         try {
             const data = await API.registerUser(username, password);
-            window.location.href = '/app';
+            window.location.href = '/app.html';
         } catch (error) {
             UI.showMessage(error.message, 'error');
         } finally {
@@ -170,7 +170,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function handleLogout() {
         try { 
             await API.logoutUser(); 
-            window.location.href = '/';
+            window.location.href = '/index.html';
         } catch (error) { UI.showMessage(error.message, 'error'); }
     }
     
