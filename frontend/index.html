@@ -766,6 +766,7 @@
         document.getElementById('registerForm').addEventListener('submit', handleRegister);
         document.getElementById('showRegister').addEventListener('click', (e) => { e.preventDefault(); toggleAuthForms(false); });
         document.getElementById('showLogin').addEventListener('click', (e) => { e.preventDefault(); toggleAuthForms(true); });
+        document.getElementById('contactForm').addEventListener('submit', handleContactSubmit);
         
         document.addEventListener('DOMContentLoaded', () => {
             const glowCards = document.querySelectorAll('.glow-card');
